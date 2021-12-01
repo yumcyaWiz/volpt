@@ -29,10 +29,10 @@ class Ray {
 
   void pushMedium(const Medium* medium) { mediums.push(medium); }
 
-  const Medium* popMedium() {
-    const Medium* ret = mediums.top();
-    mediums.pop();
-    return ret;
+  void popMedium() {
+    if (hasMedium()) {
+      mediums.pop();
+    }
   }
 };
 
