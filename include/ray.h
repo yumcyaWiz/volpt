@@ -23,6 +23,8 @@ class Ray {
 
   Vec3f operator()(float t) const { return origin + t * direction; }
 
+  bool hasMedium() const { return !mediums.empty(); }
+
   const Medium* getCurrentMedium() const { return mediums.top(); }
 
   void pushMedium(const Medium* medium) { mediums.push(medium); }

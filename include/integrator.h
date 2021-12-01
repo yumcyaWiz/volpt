@@ -130,6 +130,14 @@ class PathTracing : public PathIntegrator {
  private:
   const uint32_t maxDepth;
 
+  static bool isTransmitted(const Vec3f& wo, const Vec3f& wi, const Vec3f& n) {
+    return (dot(wo, n) < 0) != (dot(wi, n) < 0);
+  }
+
+  static bool isEntered(const Vec3f& wi, const Vec3f& n) {
+    return dot(wi, n) < 0;
+  }
+
  public:
   PathTracing(const std::shared_ptr<Camera>& camera, uint32_t n_samples,
               uint32_t maxDepth = 100)
@@ -155,6 +163,19 @@ class PathTracing : public PathIntegrator {
           throughput /= russian_roulette_prob;
         }
 
+        // sample medium
+        if (ray.hasMedium()) {
+          const Medium* medium = ray.getCurrentMedium();
+
+          Ray next_ray;
+          Vec3f Le;
+          if (medium->integrate(ray, info.t, sampler, next_ray, Le)) {
+            radiance += throughput * Le;
+            ray = next_ray;
+            continue;
+          }
+        }
+
         // Le
         if (info.hitPrimitive->hasAreaLight()) {
           radiance += throughput *
@@ -168,12 +189,25 @@ class PathTracing : public PathIntegrator {
             -ray.direction, info.surfaceInfo, TransportDirection::FROM_CAMERA,
             sampler, dir, pdf_dir);
 
+        // push or pop medium
+        if (isTransmitted(-ray.direction, dir,
+                          info.surfaceInfo.shadingNormal)) {
+          if (isEntered(dir, info.surfaceInfo.shadingNormal)) {
+            if (info.hitPrimitive->hasMedium()) {
+              ray.pushMedium(info.hitPrimitive->getMedium());
+            } else {
+              ray.popMedium();
+            }
+          }
+        }
+
         // update throughput and ray
         throughput *= f *
                       cosTerm(-ray.direction, dir, info.surfaceInfo,
                               TransportDirection::FROM_CAMERA) /
                       pdf_dir;
-        ray = Ray(info.surfaceInfo.position, dir);
+        ray.origin = info.surfaceInfo.position;
+        ray.direction = dir;
       } else {
         break;
       }

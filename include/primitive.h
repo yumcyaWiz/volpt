@@ -29,6 +29,8 @@ class Primitive {
     return areaLight->Le(surfInfo, dir);
   }
 
+  const Medium* getMedium() const { return medium; }
+
   BxDFType getBxDFType() const { return bxdf->getType(); }
 
   Vec3f evaluateBxDF(const Vec3f& wo, const Vec3f& wi,
@@ -61,11 +63,6 @@ class Primitive {
                       surfInfo.dpdv);
 
     return f;
-  }
-
-  bool sampleMedium(const Ray& ray_in, float distToSurface, Sampler& sampler,
-                    Ray& ray_out, Vec3f& Le) const {
-    return medium->integrate(ray_in, distToSurface, sampler, ray_out, Le);
   }
 };
 
