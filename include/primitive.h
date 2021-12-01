@@ -5,22 +5,24 @@
 
 #include "light.h"
 #include "material.h"
+#include "medium.h"
 #include "triangle.h"
 
-// primitive provides an abstraction layer of the object's shape(triangle),
-// material, area light
+// primitive provides an abstraction layer of the objects in the scene
 class Primitive {
  private:
   const Triangle* triangle;
   const BxDF* bxdf;
   const Light* areaLight;
+  const Medium* medium;
 
  public:
   Primitive(const Triangle* triangle, const BxDF* bxdf,
-            const Light* areaLight = nullptr)
+            const Light* areaLight = nullptr, const Medium* medium = nullptr)
       : triangle(triangle), bxdf(bxdf), areaLight(areaLight) {}
 
   bool hasAreaLight() const { return areaLight != nullptr; }
+  bool hasMedium() const { return medium != nullptr; }
 
   // return emission
   Vec3f Le(const SurfaceInfo& surfInfo, const Vec3f& dir) const {
