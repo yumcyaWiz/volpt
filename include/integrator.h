@@ -8,7 +8,6 @@
 #include "camera.h"
 #include "core.h"
 #include "image.h"
-#include "photon_map.h"
 #include "scene.h"
 
 class Integrator {
