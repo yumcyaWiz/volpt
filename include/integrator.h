@@ -176,6 +176,7 @@ class PathTracing : public PathIntegrator {
               break;
             }
 
+            // scattering
             // skip BSDF sampling
             continue;
           }
