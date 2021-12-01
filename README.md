@@ -33,7 +33,7 @@ make
 
 ## Gallery
 
-### glass bunny with homogeneous medium
+### Glass bunny with homogeneous medium
 
 ![](img/homogeneous_glass_bunny.png)
 
