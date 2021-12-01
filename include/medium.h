@@ -4,7 +4,6 @@
 
 #include "core.h"
 #include "sampler.h"
-#include "scene.h"
 
 class PhaseFunction {
  public:
@@ -63,7 +62,7 @@ class Medium {
   Medium(float g) : phaseFunction(std::make_shared<HenyeyGreenstein>(g)) {}
 
   // false means there is no collision
-  virtual bool integrate(const Scene& scene, const Ray& ray_in,
+  virtual bool integrate(const Ray& ray_in, float distToSurface,
                          Sampler& sampler, Ray& ray_out, IntersectInfo& info,
                          Vec3f& Le) const = 0;
 };
@@ -81,19 +80,14 @@ class HomogeneousMedium : public Medium {
         sigma_s(sigma_s),
         sigma_t(sigma_a + sigma_s) {}
 
-  bool integrate(const Scene& scene, const Ray& ray_in, Sampler& sampler,
+  bool integrate(const Ray& ray_in, float distToSurface, Sampler& sampler,
                  Ray& ray_out, IntersectInfo& info, Vec3f& Le) const {
-    // find intersection with scene or volume boundary
-    if (!scene.intersect(ray_in, info)) {
-      return false;
-    }
-
     // sample collision-free distance
     const float t =
         -std::log(std::max(1.0f - sampler.getNext1D(), 0.0f)) / sigma_t;
 
     // hit volume boundary, no collision
-    if (t > info.t) {
+    if (t > distToSurface) {
       return false;
     }
 
