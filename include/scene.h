@@ -261,8 +261,8 @@ class Scene {
       }
 
       // add primitive
-      primitives.emplace_back(&this->triangles[faceID], this->bxdfs[faceID],
-                              light);
+      primitives.emplace_back(&this->triangles[faceID], this->bxdfs[faceID].get(),
+                              light.get());
     }
 
     spdlog::info("[Scene] vertices: {}", nVertices());

@@ -12,12 +12,12 @@
 class Primitive {
  private:
   const Triangle* triangle;
-  const std::shared_ptr<BxDF> bxdf;
-  const std::shared_ptr<Light> areaLight;
+  const BxDF* bxdf;
+  const Light* areaLight;
 
  public:
-  Primitive(const Triangle* triangle, const std::shared_ptr<BxDF>& bxdf,
-            const std::shared_ptr<Light>& areaLight = nullptr)
+  Primitive(const Triangle* triangle, const BxDF* bxdf,
+            const Light* areaLight = nullptr)
       : triangle(triangle), bxdf(bxdf), areaLight(areaLight) {}
 
   bool hasAreaLight() const { return areaLight != nullptr; }
