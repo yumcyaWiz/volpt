@@ -63,8 +63,7 @@ class Medium {
 
   // false means there is no collision
   virtual bool integrate(const Ray& ray_in, float distToSurface,
-                         Sampler& sampler, Ray& ray_out, IntersectInfo& info,
-                         Vec3f& Le) const = 0;
+                         Sampler& sampler, Ray& ray_out, Vec3f& Le) const = 0;
 };
 
 class HomogeneousMedium : public Medium {
@@ -81,7 +80,7 @@ class HomogeneousMedium : public Medium {
         sigma_t(sigma_a + sigma_s) {}
 
   bool integrate(const Ray& ray_in, float distToSurface, Sampler& sampler,
-                 Ray& ray_out, IntersectInfo& info, Vec3f& Le) const {
+                 Ray& ray_out, Vec3f& Le) const {
     // sample collision-free distance
     const float t =
         -std::log(std::max(1.0f - sampler.getNext1D(), 0.0f)) / sigma_t;

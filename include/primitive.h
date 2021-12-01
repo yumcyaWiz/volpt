@@ -62,6 +62,11 @@ class Primitive {
 
     return f;
   }
+
+  bool sampleMedium(const Ray& ray_in, float distToSurface, Sampler& sampler,
+                    Ray& ray_out, Vec3f& Le) const {
+    return medium->integrate(ray_in, distToSurface, sampler, ray_out, Le);
+  }
 };
 
 #endif
