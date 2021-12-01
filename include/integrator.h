@@ -167,11 +167,9 @@ class PathTracing : public PathIntegrator {
         if (ray.hasMedium()) {
           const Medium* medium = ray.getCurrentMedium();
 
-          Ray next_ray;
           Vec3f Le;
-          if (medium->integrate(ray, info.t, sampler, next_ray, Le)) {
+          if (medium->sampleMedium(ray, info.t, sampler, Le)) {
             radiance += throughput * Le;
-            ray = next_ray;
             continue;
           }
         }

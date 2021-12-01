@@ -62,8 +62,8 @@ class Medium {
   Medium(float g) : phaseFunction(std::make_shared<HenyeyGreenstein>(g)) {}
 
   // false means there is no collision
-  virtual bool integrate(const Ray& ray_in, float distToSurface,
-                         Sampler& sampler, Ray& ray_out, Vec3f& Le) const = 0;
+  virtual bool sampleMedium(Ray& ray, float distToSurface, Sampler& sampler,
+                            Vec3f& Le) const = 0;
 };
 
 class HomogeneousMedium : public Medium {
@@ -79,8 +79,8 @@ class HomogeneousMedium : public Medium {
         sigma_s(sigma_s),
         sigma_t(sigma_a + sigma_s) {}
 
-  bool integrate(const Ray& ray_in, float distToSurface, Sampler& sampler,
-                 Ray& ray_out, Vec3f& Le) const {
+  bool sampleMedium(Ray& ray, float distToSurface, Sampler& sampler,
+                    Vec3f& Le) const {
     // sample collision-free distance
     const float t =
         -std::log(std::max(1.0f - sampler.getNext1D(), 0.0f)) / sigma_t;
@@ -95,17 +95,18 @@ class HomogeneousMedium : public Medium {
     if (sampler.getNext1D() < p_a) {
       Le = Vec3f(0);
 
-      // spawn new ray
-      ray_out = Ray(ray_in(t), ray_in.direction);
+      // advance ray
+      ray.origin = ray(t);
     }
     // scattering
     else {
       // sample direction
       Vec3f wi;
-      phaseFunction->sampleDirection(-ray_in.direction, sampler, wi);
+      phaseFunction->sampleDirection(-ray.direction, sampler, wi);
 
-      // spawn new ray
-      ray_out = Ray(ray_in(t), wi);
+      // advance ray, and set new direction
+      ray.origin = ray(t);
+      ray.direction = wi;
     }
 
     return true;
