@@ -94,6 +94,9 @@ class HomogeneousMedium : public Medium {
     // emission
     if (sampler.getNext1D() < p_a) {
       Le = Vec3f(0);
+
+      // spawn new ray
+      ray_out = Ray(ray_in(t), ray_in.direction);
     }
     // scattering
     else {
