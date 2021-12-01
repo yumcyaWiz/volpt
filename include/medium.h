@@ -63,7 +63,7 @@ class Medium {
 
   // false means there is no collision
   virtual bool sampleMedium(Ray& ray, float distToSurface, Sampler& sampler,
-                            Vec3f& Le) const = 0;
+                            Vec3f& Le, bool& terminate) const = 0;
 };
 
 class HomogeneousMedium : public Medium {
@@ -79,8 +79,8 @@ class HomogeneousMedium : public Medium {
         sigma_s(sigma_s),
         sigma_t(sigma_a + sigma_s) {}
 
-  bool sampleMedium(Ray& ray, float distToSurface, Sampler& sampler,
-                    Vec3f& Le) const {
+  bool sampleMedium(Ray& ray, float distToSurface, Sampler& sampler, Vec3f& Le,
+                    bool& terminate) const override {
     // sample collision-free distance
     const float t =
         -std::log(std::max(1.0f - sampler.getNext1D(), 0.0f)) / sigma_t;
@@ -91,12 +91,10 @@ class HomogeneousMedium : public Medium {
     }
 
     const float p_a = sigma_a / sigma_t;
-    // emission
+    // absorption/emission
     if (sampler.getNext1D() < p_a) {
       Le = Vec3f(0);
-
-      // advance ray
-      ray.origin = ray(t);
+      terminate = true;
     }
     // scattering
     else {
