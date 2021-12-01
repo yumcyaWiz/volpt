@@ -38,6 +38,7 @@ class HenyeyGreenstein : public PhaseFunction {
     // sample cosTheta
     float cosTheta;
     if (std::abs(g) < 1e-3) {
+      // when g is small, sample direction uniformly
       cosTheta = 1 - 2 * u[0];
     } else {
       const float sqrTerm = (1 - g * g) / (1 - g + 2 * g * u[0]);
@@ -105,6 +106,7 @@ class HomogeneousMedium : public Medium {
       // advance ray, and set new direction
       ray.origin = ray(t);
       ray.direction = wi;
+      terminate = false;
     }
 
     return true;

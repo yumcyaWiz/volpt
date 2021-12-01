@@ -188,11 +188,19 @@ class PathTracing : public PathIntegrator {
         }
 
         // sample direction by BxDF
-        Vec3f dir;
-        float pdf_dir;
-        Vec3f f = info.hitPrimitive->sampleBxDF(
-            -ray.direction, info.surfaceInfo, TransportDirection::FROM_CAMERA,
-            sampler, dir, pdf_dir);
+        Vec3f dir = ray.direction;
+        if (info.hitPrimitive->hasSurface()) {
+          float pdf_dir;
+          const Vec3f f = info.hitPrimitive->sampleBxDF(
+              -ray.direction, info.surfaceInfo, TransportDirection::FROM_CAMERA,
+              sampler, dir, pdf_dir);
+
+          // update throughput
+          throughput *= f *
+                        cosTerm(-ray.direction, dir, info.surfaceInfo,
+                                TransportDirection::FROM_CAMERA) /
+                        pdf_dir;
+        }
 
         // push or pop medium
         if (isTransmitted(-ray.direction, dir,
@@ -206,11 +214,7 @@ class PathTracing : public PathIntegrator {
           }
         }
 
-        // update throughput and ray
-        throughput *= f *
-                      cosTerm(-ray.direction, dir, info.surfaceInfo,
-                              TransportDirection::FROM_CAMERA) /
-                      pdf_dir;
+        // update ray
         ray.origin = info.surfaceInfo.position;
         ray.direction = dir;
       } else {

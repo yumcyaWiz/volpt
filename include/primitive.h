@@ -21,6 +21,7 @@ class Primitive {
             const Medium* medium = nullptr, const Light* areaLight = nullptr)
       : triangle(triangle), bxdf(bxdf), medium(medium), areaLight(areaLight) {}
 
+  bool hasSurface() const { return bxdf != nullptr; }
   bool hasMedium() const { return medium != nullptr; }
   bool hasAreaLight() const { return areaLight != nullptr; }
 
