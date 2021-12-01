@@ -1,10 +1,13 @@
 #ifndef _MEDIUM_H
 #define _MEDIUM_H
+#include <memory>
+
 #include "core.h"
 #include "sampler.h"
 #include "scene.h"
 
 class PhaseFunction {
+ public:
   // evaluate phase function
   virtual float evaluate(const Vec3f& wo, const Vec3f& wi) const = 0;
 
@@ -53,9 +56,64 @@ class HenyeyGreenstein : public PhaseFunction {
 };
 
 class Medium {
+ protected:
+  const std::shared_ptr<PhaseFunction> phaseFunction;
+
  public:
-  virtual void integrate(const Scene& scene, const Ray& ray_in,
-                         Ray& ray_out) const = 0;
+  Medium(float g) : phaseFunction(std::make_shared<HenyeyGreenstein>(g)) {}
+
+  // false means there is no collision
+  virtual bool integrate(const Scene& scene, const Ray& ray_in,
+                         Sampler& sampler, Ray& ray_out, IntersectInfo& info,
+                         Vec3f& Le) const = 0;
+};
+
+class HomogeneousMedium : public Medium {
+ private:
+  const float sigma_a;  // absorption coefficient
+  const float sigma_s;  // scattering coefficient
+  const float sigma_t;  // extinction coefficient
+
+ public:
+  HomogeneousMedium(float g, float sigma_a, float sigma_s)
+      : Medium(g),
+        sigma_a(sigma_a),
+        sigma_s(sigma_s),
+        sigma_t(sigma_a + sigma_s) {}
+
+  bool integrate(const Scene& scene, const Ray& ray_in, Sampler& sampler,
+                 Ray& ray_out, IntersectInfo& info, Vec3f& Le) const {
+    // find intersection with scene or volume boundary
+    if (!scene.intersect(ray_in, info)) {
+      return false;
+    }
+
+    // sample collision-free distance
+    const float t =
+        -std::log(std::max(1.0f - sampler.getNext1D(), 0.0f)) / sigma_t;
+
+    // hit volume boundary, no collision
+    if (t > info.t) {
+      return false;
+    }
+
+    const float p_a = sigma_a / sigma_t;
+    // emission
+    if (sampler.getNext1D() < p_a) {
+      Le = Vec3f(0);
+    }
+    // scattering
+    else {
+      // sample direction
+      Vec3f wi;
+      phaseFunction->sampleDirection(-ray_in.direction, sampler, wi);
+
+      // spawn new ray
+      ray_out = Ray(ray_in(t), wi);
+    }
+
+    return true;
+  }
 };
 
 #endif
