@@ -9,10 +9,10 @@
 #include <vector>
 
 #include "core.h"
+#include "medium.h"
 #include "primitive.h"
 #include "tiny_obj_loader.h"
 
-// create default BxDF
 const std::shared_ptr<BxDF> createDefaultBxDF() {
   return std::make_shared<Lambert>(Vec3(0.9f));
 }
@@ -34,6 +34,23 @@ const std::shared_ptr<BxDF> createBxDF(const tinyobj::material_t& material) {
     default:
       // lambert
       return std::make_shared<Lambert>(kd);
+  }
+}
+
+const std::shared_ptr<Medium> createDefaultMedium() { return nullptr; }
+
+// create Medium from tinyobj material
+const std::shared_ptr<Medium> createMedium(
+    const tinyobj::material_t& material) {
+  if (material.unknown_parameter.count("g") == 1 &&
+      material.unknown_parameter.count("sigma_a") == 1 &&
+      material.unknown_parameter.count("sigma_s") == 1) {
+    const float g = std::stof(material.unknown_parameter.at("g"));
+    const float sigma_a = std::stof(material.unknown_parameter.at("sigma_a"));
+    const float sigma_s = std::stof(material.unknown_parameter.at("sigma_s"));
+    return std::make_shared<HomogeneousMedium>(g, sigma_a, sigma_s);
+  } else {
+    return nullptr;
   }
 }
 
@@ -68,6 +85,10 @@ class Scene {
   // BxDFs
   // NOTE: per face
   std::vector<std::shared_ptr<BxDF>> bxdfs;
+
+  // mediums
+  // NOTE: per face
+  std::vector<std::shared_ptr<Medium>> mediums;
 
   // lights
   // NOTE: per face
@@ -232,18 +253,17 @@ class Scene {
                                    faceID);
     }
 
-    // populate bxdfs
+    // populate bxdfs, mediums
     for (size_t faceID = 0; faceID < nFaces(); ++faceID) {
-      // add bxdf
       // TODO: remove duplicate
       const auto material = this->materials[faceID];
       if (material) {
         const tinyobj::material_t& m = material.value();
         this->bxdfs.push_back(createBxDF(m));
-      }
-      // default material
-      else {
+        this->mediums.push_back(createMedium(m));
+      } else {
         this->bxdfs.push_back(createDefaultBxDF());
+        this->mediums.push_back(createDefaultMedium());
       }
     }
 
@@ -261,8 +281,8 @@ class Scene {
       }
 
       // add primitive
-      primitives.emplace_back(&this->triangles[faceID], this->bxdfs[faceID].get(), nullptr,
-                              light.get());
+      primitives.emplace_back(&this->triangles[faceID],
+                              this->bxdfs[faceID].get(), nullptr, light.get());
     }
 
     spdlog::info("[Scene] vertices: {}", nVertices());

@@ -46,7 +46,7 @@ class Primitive {
   }
 
   // sample direction by BxDF
-  // its pdf is propotional to the shape od BxDF
+  // its pdf is propotional to the shape of BxDF
   Vec3f sampleBxDF(const Vec3f& wo, const SurfaceInfo& surfInfo,
                    const TransportDirection& mode, Sampler& sampler, Vec3f& wi,
                    float& pdf) const {
