@@ -261,7 +261,7 @@ class Scene {
       }
 
       // add primitive
-      primitives.emplace_back(&this->triangles[faceID], this->bxdfs[faceID].get(),
+      primitives.emplace_back(&this->triangles[faceID], this->bxdfs[faceID].get(), nullptr,
                               light.get());
     }
 

@@ -207,6 +207,7 @@ class PathTracing : public PathIntegrator {
         ray.origin = info.surfaceInfo.position;
         ray.direction = dir;
       } else {
+        // ray goes out to the sky
         break;
       }
     }

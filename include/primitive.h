@@ -13,16 +13,16 @@ class Primitive {
  private:
   const Triangle* triangle;
   const BxDF* bxdf;
-  const Light* areaLight;
   const Medium* medium;
+  const Light* areaLight;
 
  public:
   Primitive(const Triangle* triangle, const BxDF* bxdf,
-            const Light* areaLight = nullptr, const Medium* medium = nullptr)
-      : triangle(triangle), bxdf(bxdf), areaLight(areaLight) {}
+            const Medium* medium = nullptr, const Light* areaLight = nullptr)
+      : triangle(triangle), bxdf(bxdf), medium(medium), areaLight(areaLight) {}
 
-  bool hasAreaLight() const { return areaLight != nullptr; }
   bool hasMedium() const { return medium != nullptr; }
+  bool hasAreaLight() const { return areaLight != nullptr; }
 
   // return emission
   Vec3f Le(const SurfaceInfo& surfInfo, const Vec3f& dir) const {
