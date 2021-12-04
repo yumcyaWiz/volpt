@@ -97,7 +97,7 @@ class HomogeneousMedium : public Medium {
     // hit volume boundary, no collision
     if (t > distToSurface) {
       const Vec3f tr = transmittance(ray.origin, ray(distToSurface));
-      throughput = tr[channel] / ((tr[0] + tr[1] + tr[2]) / 3.0f);
+      throughput = tr / ((tr[0] + tr[1] + tr[2]) / 3.0f);
       return false;
     }
 
@@ -108,7 +108,7 @@ class HomogeneousMedium : public Medium {
 
     const Vec3f tr = transmittance(ray.origin, ray(t));
     const Vec3f tr_sigma_t = tr * sigma_t;
-    throughput = (tr[channel] * sigma_s[channel]) /
+    throughput = (tr * sigma_s) /
                  ((tr_sigma_t[0] + tr_sigma_t[1] + tr_sigma_t[2]) / 3.0f);
 
     // advance ray, and set new direction
