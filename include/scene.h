@@ -90,8 +90,9 @@ const std::shared_ptr<Medium> createMedium(
     const Vec3f sigma_s = Vec3f(10, 10, 10);
     const Vec3f sigma_a = Vec3f(0, 0, 0);
 
-    spdlog::info("sigma_a: ({}, {}, {})", sigma_a[0], sigma_a[1], sigma_a[2]);
-    spdlog::info("sigma_s: ({}, {}, {})", sigma_s[0], sigma_s[1], sigma_s[2]);
+    // spdlog::info("sigma_a: ({}, {}, {})", sigma_a[0], sigma_a[1],
+    // sigma_a[2]); spdlog::info("sigma_s: ({}, {}, {})", sigma_s[0],
+    // sigma_s[1], sigma_s[2]);
 
     return std::make_shared<HomogeneousMedium>(g, sigma_a, sigma_s);
   } else {

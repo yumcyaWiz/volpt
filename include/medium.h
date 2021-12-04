@@ -63,7 +63,8 @@ class Medium {
   Medium(float g) : phaseFunction(std::make_shared<HenyeyGreenstein>(g)) {}
 
   // false means there is no collision
-  virtual bool sampleMedium(Ray& ray, float distToSurface, Sampler& sampler,
+  virtual bool sampleMedium(const Ray& ray, float distToSurface,
+                            Sampler& sampler, Vec3f& pos, Vec3f& dir,
                             Vec3f& throughput) const = 0;
 
   virtual Vec3f transmittance(const Vec3f& p1, const Vec3f& p2) const = 0;
@@ -83,8 +84,8 @@ class HomogeneousMedium : public Medium {
         sigma_t(sigma_a + sigma_s) {}
 
   // NOTE: ignore emission
-  bool sampleMedium(Ray& ray, float distToSurface, Sampler& sampler,
-                    Vec3f& throughput) const override {
+  bool sampleMedium(const Ray& ray, float distToSurface, Sampler& sampler,
+                    Vec3f& pos, Vec3f& dir, Vec3f& throughput) const override {
     // NOTE: Hero wavelength sampling with balance heuristics
     // sample wavelength
     int channel = 3 * sampler.getNext1D();
@@ -96,24 +97,22 @@ class HomogeneousMedium : public Medium {
 
     // hit volume boundary, no collision
     if (t > distToSurface) {
-      const Vec3f tr = transmittance(ray.origin, ray(distToSurface));
+      pos = ray(distToSurface);
+      dir = ray.direction;
+      const Vec3f tr = transmittance(ray.origin, pos);
       throughput = tr / ((tr[0] + tr[1] + tr[2]) / 3.0f);
       return false;
     }
 
     // in-scattering
     // sample direction
-    Vec3f wi;
-    phaseFunction->sampleDirection(-ray.direction, sampler, wi);
+    phaseFunction->sampleDirection(-ray.direction, sampler, dir);
 
-    const Vec3f tr = transmittance(ray.origin, ray(t));
+    pos = ray(t);
+    const Vec3f tr = transmittance(ray.origin, pos);
     const Vec3f tr_sigma_t = tr * sigma_t;
     throughput = (tr * sigma_s) /
                  ((tr_sigma_t[0] + tr_sigma_t[1] + tr_sigma_t[2]) / 3.0f);
-
-    // advance ray, and set new direction
-    ray.origin = ray(t);
-    ray.direction = wi;
 
     return true;
   }

@@ -167,14 +167,26 @@ class PathTracing : public PathIntegrator {
         if (ray.hasMedium()) {
           const Medium* medium = ray.getCurrentMedium();
 
+          Vec3f pos;
+          Vec3f dir;
           Vec3f throughput_medium;
-          bool scattered =
-              medium->sampleMedium(ray, info.t, sampler, throughput_medium);
+          bool scattered = medium->sampleMedium(ray, info.t, sampler, pos, dir,
+                                                throughput_medium);
+
+          // advance ray
+          ray.origin = pos;
+          ray.direction = dir;
+
+          // update throughput
           throughput *= throughput_medium;
 
           // skip BSDF sampling
           if (scattered) {
             continue;
+          } else {
+            // spdlog::info("exit");
+            // spdlog::info("pos=({}, {}, {})", pos[0], pos[1], pos[2]);
+            // spdlog::info("dir=({}, {}, {})", dir[0], dir[1], dir[2]);
           }
         }
 

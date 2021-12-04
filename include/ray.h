@@ -15,7 +15,7 @@ class Ray {
   Vec3f origin;
   Vec3f direction;
   static constexpr float tmin = RAY_EPS;
-  mutable float tmax = std::numeric_limits<float>::max();
+  static constexpr float tmax = std::numeric_limits<float>::max();
 
   Ray() {}
   Ray(const Vec3f& origin, const Vec3f& direction)
