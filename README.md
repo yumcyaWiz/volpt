@@ -7,6 +7,7 @@ WIP.
 ## Features
 
 * Homogeneous Medium
+* [Hero wavelength sampling](https://doi.org/10.1145/3306346.3323025) for chromatic absorption/scattering coefficient
 * Load obj model
 
 ## Requirements
