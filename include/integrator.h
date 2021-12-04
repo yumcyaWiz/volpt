@@ -183,10 +183,6 @@ class PathTracing : public PathIntegrator {
           // skip BSDF sampling
           if (scattered) {
             continue;
-          } else {
-            // spdlog::info("exit");
-            // spdlog::info("pos=({}, {}, {})", pos[0], pos[1], pos[2]);
-            // spdlog::info("dir=({}, {}, {})", dir[0], dir[1], dir[2]);
           }
         }
 
@@ -217,9 +213,9 @@ class PathTracing : public PathIntegrator {
           if (isEntered(dir, info.surfaceInfo.shadingNormal)) {
             if (info.hitPrimitive->hasMedium()) {
               ray.pushMedium(info.hitPrimitive->getMedium());
-            } else {
-              ray.popMedium();
             }
+          } else {
+            ray.popMedium();
           }
         }
 
