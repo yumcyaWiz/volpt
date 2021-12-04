@@ -85,8 +85,10 @@ const std::shared_ptr<Medium> createMedium(
     const Vec3f s = Vec3f(1.9) - A + Vec3f(3.5) * (A - 0.8) * (A - 0.8);
     const Vec3f sigma_t = 1.0f / (d * s);
 
-    const Vec3f sigma_s = alpha * sigma_t;
-    const Vec3f sigma_a = sigma_t - sigma_s;
+    // const Vec3f sigma_s = alpha * sigma_t;
+    // const Vec3f sigma_a = sigma_t - sigma_s;
+    const Vec3f sigma_s = Vec3f(10, 10, 10);
+    const Vec3f sigma_a = Vec3f(0, 0, 0);
 
     spdlog::info("sigma_a: ({}, {}, {})", sigma_a[0], sigma_a[1], sigma_a[2]);
     spdlog::info("sigma_s: ({}, {}, {})", sigma_s[0], sigma_s[1], sigma_s[2]);

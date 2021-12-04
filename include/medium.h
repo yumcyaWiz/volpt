@@ -64,8 +64,7 @@ class Medium {
 
   // false means there is no collision
   virtual bool sampleMedium(Ray& ray, float distToSurface, Sampler& sampler,
-                            Vec3f& throughput, Vec3f& Le,
-                            bool& terminate) const = 0;
+                            Vec3f& throughput) const = 0;
 
   virtual Vec3f transmittance(const Vec3f& p1, const Vec3f& p2) const = 0;
 };
@@ -83,9 +82,9 @@ class HomogeneousMedium : public Medium {
         sigma_s(sigma_s),
         sigma_t(sigma_a + sigma_s) {}
 
+  // NOTE: ignore emission
   bool sampleMedium(Ray& ray, float distToSurface, Sampler& sampler,
-                    Vec3f& throughput, Vec3f& Le,
-                    bool& terminate) const override {
+                    Vec3f& throughput) const override {
     // NOTE: Hero wavelength sampling with balance heuristics
     // sample wavelength
     int channel = 3 * sampler.getNext1D();
@@ -102,44 +101,26 @@ class HomogeneousMedium : public Medium {
       return false;
     }
 
-    const Vec3f tr = transmittance(ray.origin, ray(t));
-
-    // sample collision event
-    const float p_a = sigma_a[channel] / sigma_t[channel];
-    // emission
-    if (sampler.getNext1D() < p_a) {
-      Le = Vec3f(0);
-      const Vec3f tr_sigma_a = tr * sigma_a;
-      throughput = tr_sigma_a[channel] /
-                   ((tr_sigma_a[0] + tr_sigma_a[1] + tr_sigma_a[2]) / 3.0f);
-      terminate = true;
-    }
     // in-scattering
-    else {
-      // sample direction
-      Vec3f wi;
-      phaseFunction->sampleDirection(-ray.direction, sampler, wi);
+    // sample direction
+    Vec3f wi;
+    phaseFunction->sampleDirection(-ray.direction, sampler, wi);
 
-      // advance ray, and set new direction
-      ray.origin = ray(t);
-      ray.direction = wi;
+    const Vec3f tr = transmittance(ray.origin, ray(t));
+    const Vec3f tr_sigma_t = tr * sigma_t;
+    throughput = (tr[channel] * sigma_s[channel]) /
+                 ((tr_sigma_t[0] + tr_sigma_t[1] + tr_sigma_t[2]) / 3.0f);
 
-      const Vec3f tr_sigma_s = tr * sigma_s;
-      throughput = tr_sigma_s[channel] /
-                   ((tr_sigma_s[0] + tr_sigma_s[1] + tr_sigma_s[2]) / 3.0f);
-      terminate = false;
-    }
+    // advance ray, and set new direction
+    ray.origin = ray(t);
+    ray.direction = wi;
 
     return true;
   }
 
   Vec3f transmittance(const Vec3f& p1, const Vec3f& p2) const override {
     const float dist = length(p1 - p2);
-    Vec3f ret;
-    for (int i = 0; i < 3; ++i) {
-      ret[i] = std::exp(-sigma_t[i] * dist);
-    }
-    return ret;
+    return exp(-sigma_t * dist);
   }
 };
 
