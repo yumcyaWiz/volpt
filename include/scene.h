@@ -52,7 +52,8 @@ const std::shared_ptr<Medium> createMedium(
     const float g = std::stof(material.unknown_parameter.at("g"));
     const float sigma_a = std::stof(material.unknown_parameter.at("sigma_a"));
     const float sigma_s = std::stof(material.unknown_parameter.at("sigma_s"));
-    return std::make_shared<HomogeneousMedium>(g, sigma_a, sigma_s);
+    return std::make_shared<HomogeneousMedium>(g, Vec3f(sigma_a),
+                                               Vec3f(sigma_s));
   } else {
     return nullptr;
   }

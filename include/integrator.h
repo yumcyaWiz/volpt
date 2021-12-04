@@ -168,15 +168,18 @@ class PathTracing : public PathIntegrator {
           const Medium* medium = ray.getCurrentMedium();
 
           Vec3f Le;
+          Vec3f throughput_medium;
           bool terminate;
-          if (medium->sampleMedium(ray, info.t, sampler, Le, terminate)) {
+          if (medium->sampleMedium(ray, info.t, sampler, throughput_medium, Le,
+                                   terminate)) {
             // absorption or emission
             if (terminate) {
-              radiance += throughput * Le;
+              radiance += throughput * throughput_medium * Le;
               break;
             }
 
             // scattering
+            throughput *= throughput_medium;
             // skip BSDF sampling
             continue;
           }
