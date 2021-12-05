@@ -55,5 +55,6 @@ make
 * [Wilkie, Alexander, et al. "Hero wavelength spectral sampling." Computer Graphics Forum. Vol. 33. No. 4. 2014.](https://doi.org/10.1111/cgf.12419)
 * [Chiang, Matt Jen-Yuan, Peter Kutz, and Brent Burley. "Practical and controllable subsurface scattering for production path tracing." ACM SIGGRAPH 2016 Talks (2016): 1-2.](https://doi.org/10.1145/2897839.2927433)
 * [Fong, Julian, et al. "Production volume rendering: Siggraph 2017 course." ACM SIGGRAPH 2017 Courses. 2017. 1-79.](https://doi.org/10.1145/3084873.3084907)
+* [Wrenninge, Magnus, Ryusuke Villemin, and Christophe Hery. Path traced subsurface scattering using anisotropic phase functions and non-exponential free flights. Tech. Rep. 17-07, Pixar. https://graphics. pixar. com/library/PathTracedSubsurface, 2017.](https://graphics.pixar.com/library/PathTracedSubsurface/paper.pdf)
 * [Novák, Jan, et al. "Monte Carlo methods for volumetric light transport simulation." Computer Graphics Forum. Vol. 37. No. 2. 2018.](https://doi.org/10.1111/cgf.13383)
 * [Miller, Bailey, Iliyan Georgiev, and Wojciech Jarosz. "A null-scattering path integral formulation of light transport." ACM Transactions on Graphics (TOG) 38.4 (2019): 1-13.](https://doi.org/10.1145/3306346.3323025)
