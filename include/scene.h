@@ -78,8 +78,8 @@ const std::shared_ptr<Medium> createMedium(
     // controllable subsurface scattering for production path tracing." ACM
     // SIGGRAPH 2016 Talks. 2016. 1-2.
     const Vec3f A = parseVec3(material.unknown_parameter.at("medium_color"));
-    const float d =
-        std::stof(material.unknown_parameter.at("scattering_distance"));
+    const Vec3f d =
+        parseVec3(material.unknown_parameter.at("scattering_distance"));
     const Vec3f alpha =
         Vec3f(1.0f) - exp(-5.09406 * A + 2.61188 * A * A - 4.31805 * A * A * A);
     const Vec3f s = Vec3f(1.9) - A + Vec3f(3.5) * (A - 0.8) * (A - 0.8);
@@ -87,8 +87,8 @@ const std::shared_ptr<Medium> createMedium(
 
     const Vec3f sigma_s = alpha * sigma_t;
     const Vec3f sigma_a = sigma_t - sigma_s;
-    // const Vec3f sigma_s = Vec3f(10, 10, 10);
-    // const Vec3f sigma_a = Vec3f(0, 0, 0);
+    // const Vec3f sigma_s = Vec3f(0.05, 0.99, 0.5);
+    // const Vec3f sigma_a = Vec3f(0.001, 0.001, 0.001);
 
     // spdlog::info("sigma_a: ({}, {}, {})", sigma_a[0], sigma_a[1],
     // sigma_a[2]); spdlog::info("sigma_s: ({}, {}, {})", sigma_s[0],
