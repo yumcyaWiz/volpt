@@ -143,7 +143,7 @@ class DiscreteEmpiricalDistribution1D {
     return x - 1;
   }
 
-  const float* getPDF() const { return pdf.data(); }
+  float getPDF(uint32_t i) const { return pdf[i]; }
 };
 
 #endif

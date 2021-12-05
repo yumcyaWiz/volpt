@@ -70,6 +70,70 @@ class Medium {
   virtual Vec3f transmittance(const Vec3f& p1, const Vec3f& p2) const = 0;
 };
 
+class HomogeneousMedium : public Medium {
+ private:
+  const Vec3f sigma_a;  // absorption coefficient
+  const Vec3f sigma_s;  // scattering coefficient
+  const Vec3f sigma_t;  // extinction coefficient
+
+ public:
+  HomogeneousMedium(float g, Vec3f sigma_a, Vec3f sigma_s)
+      : Medium(g),
+        sigma_a(sigma_a),
+        sigma_s(sigma_s),
+        sigma_t(sigma_a + sigma_s) {}
+
+  // NOTE: ignore emission
+  bool sampleMedium(const Ray& ray, float distToSurface, Sampler& sampler,
+                    Vec3f& pos, Vec3f& dir, Vec3f& throughput) const override {
+    // sample wavelength by throughput * single scattering albedo
+
+    // Wrenninge, Magnus, Ryusuke Villemin, and Christophe Hery. Path traced
+    // subsurface scattering using anisotropic phase functions and
+    // non-exponential free flights. Tech. Rep. 17-07, Pixar. https://graphics.
+    // pixar. com/library/PathTracedSubsurface, 2017.
+    const Vec3f throughput_albedo = ray.throughput * sigma_s / sigma_t;
+    DiscreteEmpiricalDistribution1D distribution(throughput_albedo.getPtr(), 3);
+    const Vec3f pdf_wavelength(distribution.getPDF(0), distribution.getPDF(1),
+                               distribution.getPDF(2));
+    float _pdf;
+    const uint32_t channel = distribution.sample(sampler.getNext1D(), _pdf);
+
+    // sample collision-free distance
+    const float t = -std::log(std::max(1.0f - sampler.getNext1D(), 0.0f)) /
+                    sigma_t[channel];
+
+    // hit volume boundary, no collision
+    if (t > distToSurface - RAY_EPS) {
+      pos = ray(distToSurface);
+      dir = ray.direction;
+
+      const Vec3f tr = transmittance(ray.origin, pos);
+      const Vec3f p_surface = tr;
+      const Vec3f pdf = pdf_wavelength * p_surface;
+      throughput = tr / (pdf[0] + pdf[1] + pdf[2]);
+      return false;
+    }
+
+    // in-scattering
+    // sample direction
+    phaseFunction->sampleDirection(-ray.direction, sampler, dir);
+
+    pos = ray(t);
+    const Vec3f tr = transmittance(ray.origin, pos);
+    const Vec3f pdf_distance = sigma_t * tr;
+    const Vec3f pdf = pdf_wavelength * pdf_distance;
+    throughput = (tr * sigma_s) / (pdf[0] + pdf[1] + pdf[2]);
+
+    return true;
+  }
+
+  Vec3f transmittance(const Vec3f& p1, const Vec3f& p2) const override {
+    const float dist = length(p1 - p2);
+    return exp(-sigma_t * dist);
+  }
+};
+
 class HomogeneousMediumAchromatic : public Medium {
  private:
   const float sigma_a;  // absorption coefficient
@@ -114,14 +178,14 @@ class HomogeneousMediumAchromatic : public Medium {
   }
 };
 
-class HomogeneousMedium : public Medium {
+class HomogeneousMediumMIS : public Medium {
  private:
   const Vec3f sigma_a;  // absorption coefficient
   const Vec3f sigma_s;  // scattering coefficient
   const Vec3f sigma_t;  // extinction coefficient
 
  public:
-  HomogeneousMedium(float g, Vec3f sigma_a, Vec3f sigma_s)
+  HomogeneousMediumMIS(float g, Vec3f sigma_a, Vec3f sigma_s)
       : Medium(g),
         sigma_a(sigma_a),
         sigma_s(sigma_s),
@@ -168,14 +232,14 @@ class HomogeneousMedium : public Medium {
 };
 
 // no MIS version
-class HomogeneousMediumNaive : public Medium {
+class HomogeneousMediumNoMIS : public Medium {
  private:
   const Vec3f sigma_a;  // absorption coefficient
   const Vec3f sigma_s;  // scattering coefficient
   const Vec3f sigma_t;  // extinction coefficient
 
  public:
-  HomogeneousMediumNaive(float g, Vec3f sigma_a, Vec3f sigma_s)
+  HomogeneousMediumNoMIS(float g, Vec3f sigma_a, Vec3f sigma_s)
       : Medium(g),
         sigma_a(sigma_a),
         sigma_s(sigma_s),
