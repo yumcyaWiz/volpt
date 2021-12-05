@@ -70,6 +70,50 @@ class Medium {
   virtual Vec3f transmittance(const Vec3f& p1, const Vec3f& p2) const = 0;
 };
 
+class HomogeneousMediumSingleWavelength : public Medium {
+ private:
+  const float sigma_a;  // absorption coefficient
+  const float sigma_s;  // scattering coefficient
+  const float sigma_t;  // extinction coefficient
+
+ public:
+  HomogeneousMediumSingleWavelength(float g, float sigma_a, float sigma_s)
+      : Medium(g),
+        sigma_a(sigma_a),
+        sigma_s(sigma_s),
+        sigma_t(sigma_a + sigma_s) {}
+
+  // NOTE: ignore emission
+  bool sampleMedium(const Ray& ray, float distToSurface, Sampler& sampler,
+                    Vec3f& pos, Vec3f& dir, Vec3f& throughput) const override {
+    // sample collision-free distance
+    const float t =
+        -std::log(std::max(1.0f - sampler.getNext1D(), 0.0f)) / sigma_t;
+
+    // hit volume boundary, no collision
+    if (t > distToSurface - RAY_EPS) {
+      pos = ray(distToSurface);
+      dir = ray.direction;
+      throughput = Vec3f(1);
+      return false;
+    }
+
+    // in-scattering
+    // sample direction
+    phaseFunction->sampleDirection(-ray.direction, sampler, dir);
+
+    pos = ray(t);
+    throughput = Vec3f(sigma_s / sigma_t);
+
+    return true;
+  }
+
+  Vec3f transmittance(const Vec3f& p1, const Vec3f& p2) const override {
+    const float dist = length(p1 - p2);
+    return exp(-Vec3f(sigma_t) * dist);
+  }
+};
+
 class HomogeneousMedium : public Medium {
  private:
   const Vec3f sigma_a;  // absorption coefficient
