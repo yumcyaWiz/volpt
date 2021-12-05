@@ -92,7 +92,7 @@ class HomogeneousMedium : public Medium {
     // subsurface scattering using anisotropic phase functions and
     // non-exponential free flights. Tech. Rep. 17-07, Pixar. https://graphics.
     // pixar. com/library/PathTracedSubsurface, 2017.
-    const Vec3f throughput_albedo = ray.throughput * sigma_s / sigma_t;
+    const Vec3f throughput_albedo = ray.throughput * (sigma_s / sigma_t);
     DiscreteEmpiricalDistribution1D distribution(throughput_albedo.getPtr(), 3);
     const Vec3f pdf_wavelength(distribution.getPDF(0), distribution.getPDF(1),
                                distribution.getPDF(2));
