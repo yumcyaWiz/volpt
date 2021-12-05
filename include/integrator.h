@@ -147,20 +147,21 @@ class PathTracing : public PathIntegrator {
                   Sampler& sampler) const override {
     Vec3f radiance(0);
     Ray ray = ray_in;
-    Vec3f throughput(1, 1, 1);
+    ray.throughput = Vec3f(1, 1, 1);
 
     for (uint32_t k = 0; k < maxDepth; ++k) {
       IntersectInfo info;
       if (scene.intersect(ray, info)) {
         // russian roulette
         if (k > 0) {
-          const float russian_roulette_prob = std::min(
-              std::max(throughput[0], std::max(throughput[1], throughput[2])),
-              1.0f);
+          const float russian_roulette_prob =
+              std::min(std::max(ray.throughput[0],
+                                std::max(ray.throughput[1], ray.throughput[2])),
+                       1.0f);
           if (sampler.getNext1D() >= russian_roulette_prob) {
             break;
           }
-          throughput /= russian_roulette_prob;
+          ray.throughput /= russian_roulette_prob;
         }
 
         // sample medium
@@ -178,7 +179,7 @@ class PathTracing : public PathIntegrator {
           ray.direction = dir;
 
           // update throughput
-          throughput *= throughput_medium;
+          ray.throughput *= throughput_medium;
 
           // skip BSDF sampling
           if (scattered) {
@@ -188,7 +189,7 @@ class PathTracing : public PathIntegrator {
 
         // Le
         if (info.hitPrimitive->hasAreaLight()) {
-          radiance += throughput *
+          radiance += ray.throughput *
                       info.hitPrimitive->Le(info.surfaceInfo, -ray.direction);
         }
 
@@ -201,10 +202,10 @@ class PathTracing : public PathIntegrator {
               sampler, dir, pdf_dir);
 
           // update throughput
-          throughput *= f *
-                        cosTerm(-ray.direction, dir, info.surfaceInfo,
-                                TransportDirection::FROM_CAMERA) /
-                        pdf_dir;
+          ray.throughput *= f *
+                            cosTerm(-ray.direction, dir, info.surfaceInfo,
+                                    TransportDirection::FROM_CAMERA) /
+                            pdf_dir;
         }
 
         // push or pop medium
