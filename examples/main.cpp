@@ -11,20 +11,23 @@ int main() {
 
   Image image(width, height);
 
-  const Vec3f camera_pos = Vec3f(1, 3, 6);
-  const Vec3f camera_lookat = Vec3f(-0.254774, 0.653768, -0.172298);
+  const Vec3f camera_pos = Vec3f(0, 1, 6);
+  const Vec3f camera_lookat = Vec3f(0, 1, 0);
+  // const Vec3f camera_pos = Vec3f(1, 3, 6);
+  // const Vec3f camera_lookat = Vec3f(-0.254774, 0.653768, -0.172298);
   const Vec3f camera_forward = normalize(camera_lookat - camera_pos);
   const float FOV = 0.25 * PI;
 
   const auto camera =
       std::make_shared<PinholeCamera>(camera_pos, camera_forward, FOV);
-  // const auto camera = std::make_shared<ThinLensCamera>(
-  //     Vec3f(0, 1, 6), Vec3f(0, 0, -1), 0.38f * PI, 32.0f);
+  // const auto camera =
+  //     std::make_shared<ThinLensCamera>(camera_pos, camera_forward, FOV, 300);
   // camera->focus(Vec3f(-0.2496, -0.001, 0.6));
+  // camera->focus(camera_lookat);
 
   // build scene
   Scene scene;
-  scene.loadModel("bunny-test.obj");
+  scene.loadModel("CornellBox-Mist.obj");
   scene.build();
 
   // render

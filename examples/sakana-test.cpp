@@ -11,9 +11,9 @@ int main() {
 
   Image image(width, height);
 
-  const Vec3f camera_pos = Vec3f(0, 10, 162.6);
+  const Vec3f camera_pos = Vec3f(0, 26.5, 162.6);
   const Vec3f camera_forward = normalize(Vec3f(0, -0.042612, -1));
-  const float FOV = 0.25f * PI;
+  const float FOV = 0.15f * PI;
 
   const auto camera =
       std::make_shared<PinholeCamera>(camera_pos, camera_forward, FOV);
