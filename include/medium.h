@@ -70,14 +70,14 @@ class Medium {
   virtual Vec3f transmittance(const Vec3f& p1, const Vec3f& p2) const = 0;
 };
 
-class HomogeneousMediumSingleWavelength : public Medium {
+class HomogeneousMediumAchromatic : public Medium {
  private:
   const float sigma_a;  // absorption coefficient
   const float sigma_s;  // scattering coefficient
   const float sigma_t;  // extinction coefficient
 
  public:
-  HomogeneousMediumSingleWavelength(float g, float sigma_a, float sigma_s)
+  HomogeneousMediumAchromatic(float g, float sigma_a, float sigma_s)
       : Medium(g),
         sigma_a(sigma_a),
         sigma_s(sigma_s),
