@@ -96,7 +96,7 @@ class HomogeneousMedium : public Medium {
                     sigma_t[channel];
 
     // hit volume boundary, no collision
-    if (t > distToSurface) {
+    if (t > distToSurface - RAY_EPS) {
       pos = ray(distToSurface);
       dir = ray.direction;
       const Vec3f tr = transmittance(ray.origin, pos);
@@ -152,7 +152,7 @@ class HomogeneousMediumNaive : public Medium {
         sigma_t[channel] * std::exp(-sigma_t[channel] * t);
 
     // hit volume boundary, no collision
-    if (t > distToSurface) {
+    if (t > distToSurface - RAY_EPS) {
       pos = ray(distToSurface);
       dir = ray.direction;
       const Vec3f tr = transmittance(ray.origin, pos);
