@@ -1,14 +1,17 @@
 # volpt
 
+![](img/sss_bunny.png)
+
 Brute force volumetric path tracer written in C++.
 
 WIP.
 
 ## Features
 
-* Homogeneous Medium
+* Homogeneous medium
 * [Hero wavelength sampling](https://doi.org/10.1145/3306346.3323025) for chromatic absorption/scattering coefficient
 * [Artist friendly parameter](https://doi.org/10.1145/2897839.2927433)
+* Random walk subsurface scattering
 * Load obj model
 
 ## Requirements
@@ -35,13 +38,13 @@ make
 
 ## Gallery
 
-### Glass bunny with homogeneous medium
-
-![](img/homogeneous_glass_bunny.png)
-
 ### Misty cornell box
 
 ![](img/CornellBox-Mist.png)
+
+### subsurface scattering bunny
+
+![](img/sss_bunny.png)
 
 ## Externals
 
