@@ -102,6 +102,7 @@ Vec2f sampleDisk(const Vec2f& uv, float R, float& pdf) {
 class DiscreteEmpiricalDistribution1D {
  private:
   std::vector<float> cdf;
+  std::vector<float> pdf;
 
  public:
   DiscreteEmpiricalDistribution1D(const float* values, unsigned int N) {
@@ -116,6 +117,12 @@ class DiscreteEmpiricalDistribution1D {
     cdf[0] = 0;
     for (std::size_t i = 1; i < N + 1; ++i) {
       cdf[i] = cdf[i - 1] + values[i - 1] / sum;
+    }
+
+    // compute pdf
+    pdf.resize(N);
+    for (std::size_t i = 0; i < N; ++i) {
+      pdf[i] = cdf[i + 1] - cdf[i];
     }
   }
 
@@ -135,6 +142,8 @@ class DiscreteEmpiricalDistribution1D {
     // NOTE: cdf's index is +1 from values
     return x - 1;
   }
+
+  const float* getPDF() const { return pdf.data(); }
 };
 
 #endif
