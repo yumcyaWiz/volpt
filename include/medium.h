@@ -49,7 +49,13 @@ class HenyeyGreenstein : public PhaseFunction {
     const float sinTheta =
         std::sqrt(std::max(1.0f - cosTheta * cosTheta, 0.0f));
     const float phi = 2 * PI * u[1];
-    wi = Vec3f(std::cos(phi) * sinTheta, cosTheta, std::sin(phi) * sinTheta);
+    const Vec3f wi_local =
+        Vec3f(std::cos(phi) * sinTheta, cosTheta, std::sin(phi) * sinTheta);
+
+    // local to world transform
+    Vec3f t, b;
+    orthonormalBasis(-wo, t, b);
+    wi = localToWorld(wi_local, t, -wo, b);
 
     return evaluate(wo, wi);
   }
