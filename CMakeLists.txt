@@ -22,6 +22,14 @@ else()
   message(FATAL_ERROR "Could not find Embree")
 endif()
 
+# OpenVDB
+find_package(OpenVDB REQUIRED)
+if (${OpenVDB_FOUND})
+  message(STATUS "Found OpenVDB")
+else()
+  message(FATAL_ERROR "Could not find OpenVDB")
+endif()
+
 # externals
 add_subdirectory("externals")
 
@@ -35,6 +43,7 @@ target_link_libraries(volpt INTERFACE spdlog::spdlog)
 target_link_libraries(volpt INTERFACE OpenMP::OpenMP_CXX)
 target_link_libraries(volpt INTERFACE tinyobjloader)
 target_link_libraries(volpt INTERFACE embree)
+target_link_libraries(volpt INTERFACE OpenVDB::openvdb)
 
 # examples
 add_subdirectory("examples")
