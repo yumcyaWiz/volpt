@@ -298,6 +298,7 @@ class HeterogeneousMedium : public Medium {
   const std::shared_ptr<DensityGrid> volumeGridPtr;
   const Vec3f absorptionColor;
   const Vec3f scatteringColor;
+  const float densityMultiplier;
 
   Vec3f majorant;
 
@@ -305,13 +306,16 @@ class HeterogeneousMedium : public Medium {
   HeterogeneousMedium(float g,
                       const std::shared_ptr<DensityGrid>& volumeGridPtr,
                       const Vec3f& absorptionColor,
-                      const Vec3f& scatteringColor)
+                      const Vec3f& scatteringColor,
+                      float densityMultiplier = 1.0f)
       : Medium(g),
         volumeGridPtr(volumeGridPtr),
         absorptionColor(absorptionColor),
-        scatteringColor(scatteringColor) {
+        scatteringColor(scatteringColor),
+        densityMultiplier(densityMultiplier) {
     // compute majorant
-    const float max_density = volumeGridPtr->getMaxDensity();
+    const float max_density =
+        densityMultiplier * volumeGridPtr->getMaxDensity();
     majorant = absorptionColor * max_density + scatteringColor * max_density;
   }
 
@@ -348,7 +352,8 @@ class HeterogeneousMedium : public Medium {
     }
 
     // compute russian roulette probability
-    const float density = this->volumeGridPtr->getDensity(ray(t));
+    const float density =
+        this->densityMultiplier * this->volumeGridPtr->getDensity(ray(t));
     const Vec3f sigma_s = scatteringColor * density;
     const Vec3f sigma_a = absorptionColor * density;
     const Vec3f sigma_n = majorant - sigma_s - sigma_a;
