@@ -300,7 +300,21 @@ class Scene {
   }
 
   void loadVDB(const std::filesystem::path& filepath, float g,
-               const Vec3f& absorptionColor, const Vec3f& scatteringColor) {
+               const Vec3f& albedo, const Vec3f& scatteringDistance,
+               float densityMultiplier = 1.0f) {
+    // compute sigma_a, sigma_s
+    // Chiang, Matt Jen-Yuan, Peter Kutz, and Brent Burley. "Practical and
+    // controllable subsurface scattering for production path tracing." ACM
+    // SIGGRAPH 2016 Talks. 2016. 1-2.
+    const Vec3f alpha =
+        Vec3f(1.0f) - exp(-5.09406 * albedo + 2.61188 * albedo * albedo -
+                          4.31805 * albedo * albedo * albedo);
+    const Vec3f s =
+        Vec3f(1.9) - albedo + Vec3f(3.5) * (albedo - 0.8) * (albedo - 0.8);
+    const Vec3f sigma_t = 1.0f / (scatteringDistance * s);
+    const Vec3f sigma_s = alpha * sigma_t;
+    const Vec3f sigma_a = sigma_t - sigma_s;
+
     // create DensityGrid
     const std::shared_ptr<DensityGrid> densityGrid =
         std::make_shared<OpenVDBGrid>(filepath);
@@ -386,7 +400,6 @@ class Scene {
       const Vec3f v0 = normalize(p1 - p0);
       const Vec3f v1 = normalize(p2 - p0);
       const Vec3f norm = normalize(cross(v0, v1));
-      spdlog::info("{}, {}, {}", norm[0], norm[1], norm[2]);
       n.push_back(norm);
       n.push_back(norm);
       n.push_back(norm);
@@ -427,7 +440,7 @@ class Scene {
 
       // add medium
       const auto medium = std::make_shared<HeterogeneousMedium>(
-          g, densityGrid, absorptionColor, scatteringColor);
+          g, densityGrid, sigma_a, sigma_s, densityMultiplier);
       this->mediums.emplace(faceID, medium);
     }
   }
