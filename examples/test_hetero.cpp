@@ -6,13 +6,15 @@
 int main() {
   const uint32_t width = 512;
   const uint32_t height = 512;
-  const uint32_t n_samples = 100;
+  const uint32_t n_samples = 10000;
   const uint32_t max_depth = 10000;
 
   Image image(width, height);
 
-  const Vec3f camera_pos = Vec3f(0, 1, 6);
-  const Vec3f camera_lookat = Vec3f(0, 1, 0);
+  // const Vec3f camera_pos = 1.5 * Vec3f(48, 24, 24);
+  // const Vec3f camera_lookat = Vec3f(0, 12, 0);
+  const Vec3f camera_pos = 30 * Vec3f(0, 1.5, 6);
+  const Vec3f camera_lookat = 30 * Vec3f(0, 1.5, 0);
   const Vec3f camera_forward = normalize(camera_lookat - camera_pos);
   const float FOV = 0.25 * PI;
 
@@ -21,12 +23,18 @@ int main() {
 
   // build scene
   Scene scene;
-  scene.loadVDB("smoke2.vdb", 0, Vec3f(0), Vec3f(1));
+  // scene.loadObj("smoke_test.obj");
+  // scene.loadVDB("smoke2.vdb", 0, Vec3f(0.8f, 0.01f, 0.2f),
+  //               Vec3f(1.0f, 1.0f, 1.0f), 20.0f);
+
+  scene.loadObj("cornellbox_smoke.obj");
+  scene.loadVDB("smoke.vdb", 0, Vec3f(0.1f), Vec3f(1.0f), 5.0f);
   scene.build();
 
   // render
   UniformSampler sampler;
   PathTracing integrator(camera, n_samples, max_depth);
+  // NormalIntegrator integrator(camera);
   integrator.render(scene, sampler, image);
 
   // gamma correction
