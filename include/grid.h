@@ -26,13 +26,16 @@ class OpenVDBGrid : public DensityGrid {
 
     // open vdb file
     openvdb::io::File file(filepath.generic_string());
-    file.open();
+    if (!file.open()) {
+      spdlog::error("[OpenVDBGrid] failed to load {}",
+                    filepath.generic_string());
+    }
 
     // get density grid
     this->gridPtr =
         openvdb::gridPtrCast<openvdb::FloatGrid>(file.readGrid("density"));
     if (!this->gridPtr) {
-      spdlog::error("[Scene] failed to load density grid");
+      spdlog::error("[OpenVDBGrid] failed to load density grid");
       return;
     }
     file.close();
