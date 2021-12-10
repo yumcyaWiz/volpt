@@ -3,6 +3,8 @@
 #include <openvdb/openvdb.h>
 #include <openvdb/tools/Interpolation.h>
 
+#include <filesystem>
+
 #include "core.h"
 
 struct AABB {
@@ -19,14 +21,27 @@ class DensityGrid {
 
 class OpenVDBGrid : public DensityGrid {
  private:
-  const openvdb::FloatGrid::Ptr gridPtr;
-  const openvdb::tools::GridSampler<openvdb::FloatGrid,
-                                    openvdb::tools::BoxSampler>
-      gridSampler;
+  openvdb::FloatGrid::Ptr gridPtr;
 
  public:
-  OpenVDBGrid(const openvdb::FloatGrid::Ptr& gridPtr)
-      : gridPtr(gridPtr), gridSampler(*gridPtr) {}
+  OpenVDBGrid(const std::filesystem::path& filepath) {
+    spdlog::info("[OpenVDBGrid] loading: {}", filepath.generic_string());
+
+    openvdb::initialize();
+
+    // open vdb file
+    openvdb::io::File file(filepath.generic_string());
+    file.open();
+
+    // get density grid
+    this->gridPtr =
+        openvdb::gridPtrCast<openvdb::FloatGrid>(file.readGrid("density"));
+    if (!this->gridPtr) {
+      spdlog::error("[Scene] failed to load density grid");
+      return;
+    }
+    file.close();
+  }
 
   AABB getBounds() const override {
     AABB ret;
@@ -41,6 +56,9 @@ class OpenVDBGrid : public DensityGrid {
   }
 
   float getDensity(const Vec3f& pos) const override {
+    const auto gridSampler =
+        openvdb::tools::GridSampler<openvdb::FloatGrid,
+                                    openvdb::tools::BoxSampler>(*this->gridPtr);
     return gridSampler.wsSample(openvdb::Vec3f(pos[0], pos[1], pos[2]));
   }
 

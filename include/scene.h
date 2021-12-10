@@ -11,6 +11,7 @@
 #include <vector>
 
 #include "core.h"
+#include "grid.h"
 #include "medium.h"
 #include "primitive.h"
 #include "tiny_obj_loader.h"
