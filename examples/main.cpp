@@ -27,7 +27,7 @@ int main() {
 
   // build scene
   Scene scene;
-  scene.loadModel("CornellBox-Mist.obj");
+  scene.loadObj("CornellBox-Mist.obj");
   scene.build();
 
   // render

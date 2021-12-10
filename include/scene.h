@@ -145,6 +145,9 @@ class Scene {
   // NOTE: per face
   std::vector<Primitive> primitives;
 
+  // density grids
+  std::vector<std::shared_ptr<DensityGrid>> densityGrids;
+
   // embree
   RTCDevice device;
   RTCScene scene;
@@ -174,7 +177,7 @@ class Scene {
 
   // load obj file
   // TODO: remove vertex duplication
-  void loadModel(const std::filesystem::path& filepath) {
+  void loadObj(const std::filesystem::path& filepath) {
     clear();
 
     spdlog::info("[Scene] loading: {}", filepath.generic_string());
@@ -336,6 +339,18 @@ class Scene {
     spdlog::info("[Scene] vertices: {}", nVertices());
     spdlog::info("[Scene] faces: {}", nFaces());
     spdlog::info("[Scene] lights: {}", lights.size());
+  }
+
+  void loadVDB(const std::filesystem::path& filepath) {
+    // create DensityGrid
+    const std::shared_ptr<DensityGrid> densityGrid =
+        std::make_shared<OpenVDBGrid>(filepath);
+    densityGrids.push_back(densityGrid);
+
+    // compute bounding box
+    const AABB bbox = densityGrid->getBounds();
+
+    // create triangles from bounding box
   }
 
   uint32_t nVertices() const { return vertices.size() / 3; }
