@@ -140,7 +140,8 @@ class Scene {
 
   // lights
   // NOTE: per face
-  std::vector<std::shared_ptr<Light>> lights;
+  std::unordered_map<uint32_t, std::shared_ptr<Light>> lights;
+  std::vector<std::shared_ptr<Light>> lights_for_sampling;
 
   // primitives
   // NOTE: per face
@@ -152,8 +153,6 @@ class Scene {
   // embree
   RTCDevice device;
   RTCScene scene;
-
-  bool hasLight(uint32_t faceID) const { return lights[faceID] != nullptr; }
 
   void clear() {
     vertices.clear();
@@ -358,6 +357,7 @@ class Scene {
     for (const auto& kv : this->materials) {
       const uint32_t faceID = kv.first;
       const auto& material = kv.second;
+
       if (material) {
         const tinyobj::material_t& m = material.value();
         this->bxdfs.emplace(faceID, createBxDF(m));
@@ -368,23 +368,34 @@ class Scene {
       }
     }
 
-    // populate lights, primitives
-    for (size_t faceID = 0; faceID < nFaces(); ++faceID) {
-      // add light
+    // populate lights
+    for (const auto& kv : this->materials) {
+      const uint32_t faceID = kv.first;
+      const auto& material = kv.second;
+
       std::shared_ptr<Light> light = nullptr;
-      const auto material = this->materials[faceID];
       if (material) {
         const tinyobj::material_t& m = material.value();
         light = createAreaLight(m, &this->triangles[faceID]);
-        if (light != nullptr) {
-          lights.push_back(light);
-        }
       }
+      this->lights.emplace(faceID, light);
+    }
 
+    // populate light for sampling
+    for (const auto& kv : this->lights) {
+      const uint32_t faceID = kv.first;
+      const auto& light = kv.second;
+      if (light != nullptr) {
+        this->lights_for_sampling.push_back(light);
+      }
+    }
+
+    // populate primitives
+    for (size_t faceID = 0; faceID < nFaces(); ++faceID) {
       // add primitive
-      primitives.emplace_back(&this->triangles[faceID],
-                              this->bxdfs.at(faceID).get(),
-                              this->mediums.at(faceID).get(), light.get());
+      primitives.emplace_back(
+          &this->triangles[faceID], this->bxdfs.at(faceID).get(),
+          this->mediums.at(faceID).get(), this->lights.at(faceID).get());
     }
 
     setupEmbree();
@@ -392,7 +403,7 @@ class Scene {
     spdlog::info("[Scene] done");
     spdlog::info("[Scene] vertices: {}", nVertices());
     spdlog::info("[Scene] faces: {}", nFaces());
-    spdlog::info("[Scene] lights: {}", lights.size());
+    spdlog::info("[Scene] lights: {}", lights_for_sampling.size());
   }
 
   // ray-scene intersection
@@ -440,10 +451,10 @@ class Scene {
   }
 
   std::shared_ptr<Light> sampleLight(Sampler& sampler, float& pdf) const {
-    unsigned int lightIdx = lights.size() * sampler.getNext1D();
-    if (lightIdx == lights.size()) lightIdx--;
-    pdf = 1.0f / lights.size();
-    return lights[lightIdx];
+    unsigned int lightIdx = lights_for_sampling.size() * sampler.getNext1D();
+    if (lightIdx == lights_for_sampling.size()) lightIdx--;
+    pdf = 1.0f / lights_for_sampling.size();
+    return lights_for_sampling[lightIdx];
   }
 };
 
