@@ -8,6 +8,7 @@
 #include <optional>
 #include <sstream>
 #include <string>
+#include <unordered_map>
 #include <vector>
 
 #include "core.h"
@@ -123,7 +124,7 @@ class Scene {
   std::vector<float> normals;
   std::vector<float> texcoords;
 
-  std::vector<std::optional<tinyobj::material_t>> materials;
+  std::unordered_map<uint32_t, std::optional<tinyobj::material_t>> materials;
 
   // triangles
   // NOTE: per face
@@ -285,12 +286,14 @@ class Scene {
         }
 
         // populate materials
+        // TODO: remove duplicate
         const int materialID = shapes[s].mesh.material_ids[f];
         std::optional<tinyobj::material_t> material = std::nullopt;
         if (materialID != -1) {
           material = materials[materialID];
         }
-        this->materials.push_back(material);
+        const uint32_t faceID = this->indices.size() / 3 - 1;
+        this->materials.emplace(faceID, material);
 
         index_offset += fv;
       }
@@ -353,8 +356,7 @@ class Scene {
 
     // populate bxdfs, mediums
     for (size_t faceID = 0; faceID < nFaces(); ++faceID) {
-      // TODO: remove duplicate
-      const auto material = this->materials[faceID];
+      const auto& material = this->materials.at(faceID);
       if (material) {
         const tinyobj::material_t& m = material.value();
         this->bxdfs.push_back(createBxDF(m));
