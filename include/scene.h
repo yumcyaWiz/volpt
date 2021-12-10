@@ -332,12 +332,12 @@ class Scene {
       v[5] = p3;
 
       v[6] = p1;
-      v[7] = p4;
-      v[8] = p2;
+      v[7] = p2;
+      v[8] = p4;
 
       v[9] = p1;
-      v[10] = p7;
-      v[11] = p2;
+      v[10] = p2;
+      v[11] = p7;
 
       v[12] = p4;
       v[13] = p5;
@@ -348,28 +348,28 @@ class Scene {
       v[17] = p7;
 
       v[18] = p5;
-      v[19] = p0;
-      v[20] = p3;
+      v[19] = p3;
+      v[20] = p0;
 
       v[21] = p5;
-      v[22] = p3;
-      v[23] = p6;
+      v[22] = p6;
+      v[23] = p3;
 
       v[24] = p0;
-      v[25] = p5;
+      v[25] = p1;
       v[26] = p4;
 
       v[27] = p0;
       v[28] = p4;
-      v[29] = p1;
+      v[29] = p5;
 
       v[30] = p3;
-      v[31] = p2;
-      v[32] = p7;
+      v[31] = p7;
+      v[32] = p2;
 
       v[33] = p3;
-      v[34] = p7;
-      v[35] = p6;
+      v[34] = p6;
+      v[35] = p7;
     }
 
     // compute face normal
@@ -381,6 +381,7 @@ class Scene {
       const Vec3f v0 = normalize(p1 - p0);
       const Vec3f v1 = normalize(p2 - p0);
       const Vec3f norm = normalize(cross(v0, v1));
+      spdlog::info("{}, {}, {}", norm[0], norm[1], norm[2]);
       n.push_back(norm);
       n.push_back(norm);
       n.push_back(norm);
@@ -412,9 +413,8 @@ class Scene {
         this->indices.push_back(this->indices.size());
       }
 
-      const uint32_t faceID = this->indices.size() / 3 - 1;
-
       // add bxdf
+      const uint32_t faceID = this->indices.size() / 3 - 1;
       this->bxdfs.emplace(faceID, nullptr);
 
       // add light
