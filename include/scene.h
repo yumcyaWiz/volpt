@@ -307,7 +307,14 @@ class Scene {
     densityGrids.push_back(densityGrid);
 
     // compute bounding box
-    const AABB bbox = densityGrid->getBounds();
+    AABB bbox = densityGrid->getBounds();
+    bbox.pMin = Vec3f(-1);
+    bbox.pMax = Vec3f(1);
+    spdlog::info("[Scene] OpenVDB Volume bounding box");
+    spdlog::info("[Scene] pMin: ({}, {}, {})", bbox.pMin[0], bbox.pMin[1],
+                 bbox.pMin[2]);
+    spdlog::info("[Scene] pMax: ({}, {}, {})", bbox.pMax[0], bbox.pMax[1],
+                 bbox.pMax[2]);
 
     // create triangles from bounding box
     std::vector<Vec3f> v(3 * 12);
@@ -332,7 +339,7 @@ class Scene {
       v[5] = p3;
 
       v[6] = p1;
-      v[7] = p2;
+      v[7] = p7;
       v[8] = p4;
 
       v[9] = p1;
@@ -373,7 +380,7 @@ class Scene {
     }
 
     // compute face normal
-    std::vector<Vec3f> n(3 * 12);
+    std::vector<Vec3f> n;
     for (int faceID = 0; faceID < v.size() / 3; ++faceID) {
       const Vec3f p0 = v[3 * faceID];
       const Vec3f p1 = v[3 * faceID + 1];
@@ -381,13 +388,14 @@ class Scene {
       const Vec3f v0 = normalize(p1 - p0);
       const Vec3f v1 = normalize(p2 - p0);
       const Vec3f norm = normalize(cross(v0, v1));
+      spdlog::info("{}, {}, {}", norm[0], norm[1], norm[2]);
       n.push_back(norm);
       n.push_back(norm);
       n.push_back(norm);
     }
 
     // compute texcoords
-    std::vector<Vec2f> t(3 * 12);
+    std::vector<Vec2f> t;
     for (int faceID = 0; faceID < v.size() / 3; ++faceID) {
       t.push_back(Vec2f(0, 0));
       t.push_back(Vec2f(1, 0));
