@@ -258,6 +258,11 @@ inline Vec3f sphericalToCartesian(float theta, float phi) {
                std::sin(phi) * std::sin(theta));
 }
 
+struct AABB {
+  Vec3f pMin;
+  Vec3f pMax;
+};
+
 struct SurfaceInfo {
   Vec3f position;
   Vec3f geometricNormal;

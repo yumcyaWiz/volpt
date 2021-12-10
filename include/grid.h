@@ -7,11 +7,6 @@
 
 #include "core.h"
 
-struct AABB {
-  Vec3f pMin;
-  Vec3f pMax;
-};
-
 class DensityGrid {
  public:
   virtual AABB getBounds() const = 0;
