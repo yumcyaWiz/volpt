@@ -124,8 +124,25 @@ class PathIntegrator : public Integrator {
   }
 };
 
+// render shading normal
+class NormalIntegrator : public PathIntegrator {
+ public:
+  NormalIntegrator(const std::shared_ptr<Camera>& camera)
+      : PathIntegrator(camera, 1) {}
+
+  Vec3f integrate(const Ray& ray_in, const Scene& scene,
+                  Sampler& sampler) const override {
+    IntersectInfo info;
+    if (scene.intersect(ray_in, info)) {
+      // return 0.5f * (ray_in.direction + 1.0f);
+      return 0.5f * (info.surfaceInfo.shadingNormal + 1.0f);
+    } else {
+      return Vec3f(0);
+    }
+  }
+};
+
 // implementation of path tracing
-// NOTE: for reference purpose
 class PathTracing : public PathIntegrator {
  private:
   const uint32_t maxDepth;

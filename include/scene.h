@@ -381,7 +381,6 @@ class Scene {
       const Vec3f v0 = normalize(p1 - p0);
       const Vec3f v1 = normalize(p2 - p0);
       const Vec3f norm = normalize(cross(v0, v1));
-      spdlog::info("{}, {}, {}", norm[0], norm[1], norm[2]);
       n.push_back(norm);
       n.push_back(norm);
       n.push_back(norm);
