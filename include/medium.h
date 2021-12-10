@@ -3,6 +3,7 @@
 #include <memory>
 
 #include "core.h"
+#include "grid.h"
 #include "sampler.h"
 
 class PhaseFunction {
@@ -289,6 +290,99 @@ class HomogeneousMediumNoMIS : public Medium {
   Vec3f transmittance(const Vec3f& p1, const Vec3f& p2) const override {
     const float dist = length(p1 - p2);
     return exp(-sigma_t * dist);
+  }
+};
+
+class HeterogeneousMedium : public Medium {
+ private:
+  const std::shared_ptr<VolumeGrid> volumeGridPtr;
+  const Vec3f absorptionColor;
+  const Vec3f scatteringColor;
+
+  Vec3f majorant;
+
+ public:
+  HeterogeneousMedium(float g, const std::shared_ptr<VolumeGrid>& volumeGridPtr,
+                      const Vec3f& absorptionColor,
+                      const Vec3f& scatteringColor)
+      : Medium(g),
+        volumeGridPtr(volumeGridPtr),
+        absorptionColor(absorptionColor),
+        scatteringColor(scatteringColor) {
+    // compute majorant
+    const float max_density = volumeGridPtr->getMajorant();
+    majorant = absorptionColor * max_density + scatteringColor * max_density;
+  }
+
+  // NOTE: ignore emission, using null-collision
+  bool sampleMedium(const Ray& ray, float distToSurface, Sampler& sampler,
+                    Vec3f& pos, Vec3f& dir, Vec3f& throughput) const override {
+    // sample wavelength by ray's throughput
+
+    // Wrenninge, Magnus, Ryusuke Villemin, and Christophe Hery. Path traced
+    // subsurface scattering using anisotropic phase functions and
+    // non-exponential free flights. Tech. Rep. 17-07, Pixar. https://graphics.
+    // pixar. com/library/PathTracedSubsurface, 2017.
+    const Vec3f throughput_albedo = ray.throughput;
+    DiscreteEmpiricalDistribution1D distribution(throughput_albedo.getPtr(), 3);
+    const Vec3f pdf_wavelength(distribution.getPDF(0), distribution.getPDF(1),
+                               distribution.getPDF(2));
+    float _pdf;
+    const uint32_t channel = distribution.sample(sampler.getNext1D(), _pdf);
+
+    // sample collision-free distance
+    const float t = -std::log(std::max(1.0f - sampler.getNext1D(), 0.0f)) /
+                    majorant[channel];
+
+    // hit volume boundary, no collision
+    if (t > distToSurface - RAY_EPS) {
+      pos = ray(distToSurface);
+      dir = ray.direction;
+
+      const Vec3f tr = transmittance(ray.origin, pos);
+      const Vec3f p_surface = tr;
+      const Vec3f pdf = pdf_wavelength * p_surface;
+      throughput = tr / (pdf[0] + pdf[1] + pdf[2]);
+      return false;
+    }
+
+    // compute russian roulette probability
+    const float density = this->volumeGridPtr->getDensity(ray(t));
+    const Vec3f sigma_s = scatteringColor * density;
+    const Vec3f sigma_a = absorptionColor * density;
+    const Vec3f sigma_n = majorant - sigma_s - sigma_a;
+    const Vec3f P_s = sigma_s / (sigma_s + sigma_n);
+    const Vec3f P_n = sigma_n / (sigma_s + sigma_n);
+
+    // In-Scattering
+    if (sampler.getNext1D() < P_s[channel]) {
+      pos = ray(t);
+      phaseFunction->sampleDirection(-ray.direction, sampler, dir);
+
+      const Vec3f tr = transmittance(ray.origin, pos);
+      const Vec3f pdf_distance = majorant * tr;
+      const Vec3f pdf = pdf_wavelength * pdf_distance * P_s;
+      throughput = (tr * sigma_s) / (pdf[0] + pdf[1] + pdf[2]);
+
+      return true;
+    }
+    // Null-Scattering
+    else {
+      pos = ray(t);
+      dir = ray.direction;
+
+      const Vec3f tr = transmittance(ray.origin, pos);
+      const Vec3f pdf_distance = majorant * tr;
+      const Vec3f pdf = pdf_wavelength * pdf_distance * P_n;
+      throughput = (tr * sigma_n) / (pdf[0] + pdf[1] + pdf[2]);
+
+      return true;
+    }
+  }
+
+  Vec3f transmittance(const Vec3f& p1, const Vec3f& p2) const override {
+    const float dist = length(p1 - p2);
+    return exp(-majorant * dist);
   }
 };
 
