@@ -99,14 +99,15 @@ class PathIntegrator : public Integrator {
             // invalid radiance check
             if (std::isnan(radiance[0]) || std::isnan(radiance[1]) ||
                 std::isnan(radiance[2])) {
-              spdlog::error("[PathIntegrator] radiance is NaN");
+              spdlog::error("[PathIntegrator] radiance is NaN: ({}, {}, {})", radiance[0], radiance[1], radiance[2]);
               continue;
             } else if (std::isinf(radiance[0]) || std::isinf(radiance[1]) ||
                        std::isinf(radiance[2])) {
-              spdlog::error("[PathIntegrator] radiance is inf");
+              spdlog::error("[PathIntegrator] radiance is inf: ({}, {}, {})", radiance[0], radiance[1], radiance[2]);
               continue;
             } else if (radiance[0] < 0 || radiance[1] < 0 || radiance[2] < 0) {
-              spdlog::error("[PathIntegrator] radiance is minus");
+              spdlog::error("[PathIntegrator] radiance is minus: ({}, {}, {})",
+                            radiance[0], radiance[1], radiance[2]);
               continue;
             }
 
@@ -135,6 +136,9 @@ class NormalIntegrator : public PathIntegrator {
     IntersectInfo info;
     if (scene.intersect(ray_in, info)) {
       // return 0.5f * (ray_in.direction + 1.0f);
+      // spdlog::info("{}, {}, {}", info.surfaceInfo.shadingNormal[0],
+      //              info.surfaceInfo.shadingNormal[1],
+      //              info.surfaceInfo.shadingNormal[2]);
       return 0.5f * (info.surfaceInfo.shadingNormal + 1.0f);
     } else {
       return Vec3f(0);
