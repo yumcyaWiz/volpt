@@ -132,11 +132,11 @@ class Scene {
 
   // BxDFs
   // NOTE: per face
-  std::vector<std::shared_ptr<BxDF>> bxdfs;
+  std::unordered_map<uint32_t, std::shared_ptr<BxDF>> bxdfs;
 
   // mediums
   // NOTE: per face
-  std::vector<std::shared_ptr<Medium>> mediums;
+  std::unordered_map<uint32_t, std::shared_ptr<Medium>> mediums;
 
   // lights
   // NOTE: per face
@@ -355,15 +355,16 @@ class Scene {
     }
 
     // populate bxdfs, mediums
-    for (size_t faceID = 0; faceID < nFaces(); ++faceID) {
-      const auto& material = this->materials.at(faceID);
+    for (const auto& kv : this->materials) {
+      const uint32_t faceID = kv.first;
+      const auto& material = kv.second;
       if (material) {
         const tinyobj::material_t& m = material.value();
-        this->bxdfs.push_back(createBxDF(m));
-        this->mediums.push_back(createMedium(m));
+        this->bxdfs.emplace(faceID, createBxDF(m));
+        this->mediums.emplace(faceID, createMedium(m));
       } else {
-        this->bxdfs.push_back(createDefaultBxDF());
-        this->mediums.push_back(createDefaultMedium());
+        this->bxdfs.emplace(faceID, createDefaultBxDF());
+        this->mediums.emplace(faceID, createDefaultMedium());
       }
     }
 
@@ -382,8 +383,8 @@ class Scene {
 
       // add primitive
       primitives.emplace_back(&this->triangles[faceID],
-                              this->bxdfs[faceID].get(),
-                              this->mediums[faceID].get(), light.get());
+                              this->bxdfs.at(faceID).get(),
+                              this->mediums.at(faceID).get(), light.get());
     }
 
     setupEmbree();
