@@ -295,51 +295,6 @@ class Scene {
         index_offset += fv;
       }
     }
-
-    // populate  triangles
-    for (size_t faceID = 0; faceID < nFaces(); ++faceID) {
-      // add triangle
-      this->triangles.emplace_back(this->vertices.data(), this->indices.data(),
-                                   this->normals.data(), this->texcoords.data(),
-                                   faceID);
-    }
-
-    // populate bxdfs, mediums
-    for (size_t faceID = 0; faceID < nFaces(); ++faceID) {
-      // TODO: remove duplicate
-      const auto material = this->materials[faceID];
-      if (material) {
-        const tinyobj::material_t& m = material.value();
-        this->bxdfs.push_back(createBxDF(m));
-        this->mediums.push_back(createMedium(m));
-      } else {
-        this->bxdfs.push_back(createDefaultBxDF());
-        this->mediums.push_back(createDefaultMedium());
-      }
-    }
-
-    // populate lights, primitives
-    for (size_t faceID = 0; faceID < nFaces(); ++faceID) {
-      // add light
-      std::shared_ptr<Light> light = nullptr;
-      const auto material = this->materials[faceID];
-      if (material) {
-        const tinyobj::material_t& m = material.value();
-        light = createAreaLight(m, &this->triangles[faceID]);
-        if (light != nullptr) {
-          lights.push_back(light);
-        }
-      }
-
-      // add primitive
-      primitives.emplace_back(&this->triangles[faceID],
-                              this->bxdfs[faceID].get(),
-                              this->mediums[faceID].get(), light.get());
-    }
-
-    spdlog::info("[Scene] vertices: {}", nVertices());
-    spdlog::info("[Scene] faces: {}", nFaces());
-    spdlog::info("[Scene] lights: {}", lights.size());
   }
 
   void loadVDB(const std::filesystem::path& filepath) {
@@ -388,9 +343,53 @@ class Scene {
   void build() {
     spdlog::info("[Scene] building scene...");
 
+    // populate  triangles
+    for (size_t faceID = 0; faceID < nFaces(); ++faceID) {
+      // add triangle
+      this->triangles.emplace_back(this->vertices.data(), this->indices.data(),
+                                   this->normals.data(), this->texcoords.data(),
+                                   faceID);
+    }
+
+    // populate bxdfs, mediums
+    for (size_t faceID = 0; faceID < nFaces(); ++faceID) {
+      // TODO: remove duplicate
+      const auto material = this->materials[faceID];
+      if (material) {
+        const tinyobj::material_t& m = material.value();
+        this->bxdfs.push_back(createBxDF(m));
+        this->mediums.push_back(createMedium(m));
+      } else {
+        this->bxdfs.push_back(createDefaultBxDF());
+        this->mediums.push_back(createDefaultMedium());
+      }
+    }
+
+    // populate lights, primitives
+    for (size_t faceID = 0; faceID < nFaces(); ++faceID) {
+      // add light
+      std::shared_ptr<Light> light = nullptr;
+      const auto material = this->materials[faceID];
+      if (material) {
+        const tinyobj::material_t& m = material.value();
+        light = createAreaLight(m, &this->triangles[faceID]);
+        if (light != nullptr) {
+          lights.push_back(light);
+        }
+      }
+
+      // add primitive
+      primitives.emplace_back(&this->triangles[faceID],
+                              this->bxdfs[faceID].get(),
+                              this->mediums[faceID].get(), light.get());
+    }
+
     setupEmbree();
 
     spdlog::info("[Scene] done");
+    spdlog::info("[Scene] vertices: {}", nVertices());
+    spdlog::info("[Scene] faces: {}", nFaces());
+    spdlog::info("[Scene] lights: {}", lights.size());
   }
 
   // ray-scene intersection
