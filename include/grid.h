@@ -10,14 +10,14 @@ struct AABB {
   Vec3f pMax;
 };
 
-class VolumeGrid {
+class DensityGrid {
  public:
   virtual AABB getBounds() const = 0;
   virtual float getDensity(const Vec3f& pos) const = 0;
-  virtual float getMajorant() const = 0;
+  virtual float getMaxDensity() const = 0;
 };
 
-class OpenVDBGrid : public VolumeGrid {
+class OpenVDBGrid : public DensityGrid {
  private:
   const openvdb::FloatGrid::Ptr gridPtr;
   const openvdb::tools::GridSampler<openvdb::FloatGrid,
@@ -44,7 +44,7 @@ class OpenVDBGrid : public VolumeGrid {
     return gridSampler.wsSample(openvdb::Vec3f(pos[0], pos[1], pos[2]));
   }
 
-  float getMajorant() const override {
+  float getMaxDensity() const override {
     float minValue, maxValue;
     gridPtr->evalMinMax(minValue, maxValue);
     return maxValue;

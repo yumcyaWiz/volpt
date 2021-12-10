@@ -295,14 +295,15 @@ class HomogeneousMediumNoMIS : public Medium {
 
 class HeterogeneousMedium : public Medium {
  private:
-  const std::shared_ptr<VolumeGrid> volumeGridPtr;
+  const std::shared_ptr<DensityGrid> volumeGridPtr;
   const Vec3f absorptionColor;
   const Vec3f scatteringColor;
 
   Vec3f majorant;
 
  public:
-  HeterogeneousMedium(float g, const std::shared_ptr<VolumeGrid>& volumeGridPtr,
+  HeterogeneousMedium(float g,
+                      const std::shared_ptr<DensityGrid>& volumeGridPtr,
                       const Vec3f& absorptionColor,
                       const Vec3f& scatteringColor)
       : Medium(g),
@@ -310,7 +311,7 @@ class HeterogeneousMedium : public Medium {
         absorptionColor(absorptionColor),
         scatteringColor(scatteringColor) {
     // compute majorant
-    const float max_density = volumeGridPtr->getMajorant();
+    const float max_density = volumeGridPtr->getMaxDensity();
     majorant = absorptionColor * max_density + scatteringColor * max_density;
   }
 
