@@ -169,6 +169,7 @@ class Scene {
 
  public:
   Scene() {}
+
   ~Scene() {
     clear();
     rtcReleaseScene(scene);
@@ -356,10 +357,7 @@ class Scene {
   uint32_t nVertices() const { return vertices.size() / 3; }
   uint32_t nFaces() const { return indices.size() / 3; }
 
-  void build() {
-    spdlog::info("[Scene] building scene...");
-
-    // setup embree
+  void setupEmbree() {
     device = rtcNewDevice(NULL);
     scene = rtcNewScene(device);
 
@@ -385,6 +383,12 @@ class Scene {
     rtcAttachGeometry(scene, geom);
     rtcReleaseGeometry(geom);
     rtcCommitScene(scene);
+  }
+
+  void build() {
+    spdlog::info("[Scene] building scene...");
+
+    setupEmbree();
 
     spdlog::info("[Scene] done");
   }
