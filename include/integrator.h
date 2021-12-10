@@ -99,11 +99,13 @@ class PathIntegrator : public Integrator {
             // invalid radiance check
             if (std::isnan(radiance[0]) || std::isnan(radiance[1]) ||
                 std::isnan(radiance[2])) {
-              spdlog::error("[PathIntegrator] radiance is NaN: ({}, {}, {})", radiance[0], radiance[1], radiance[2]);
+              spdlog::error("[PathIntegrator] radiance is NaN: ({}, {}, {})",
+                            radiance[0], radiance[1], radiance[2]);
               continue;
             } else if (std::isinf(radiance[0]) || std::isinf(radiance[1]) ||
                        std::isinf(radiance[2])) {
-              spdlog::error("[PathIntegrator] radiance is inf: ({}, {}, {})", radiance[0], radiance[1], radiance[2]);
+              spdlog::error("[PathIntegrator] radiance is inf: ({}, {}, {})",
+                            radiance[0], radiance[1], radiance[2]);
               continue;
             } else if (radiance[0] < 0 || radiance[1] < 0 || radiance[2] < 0) {
               spdlog::error("[PathIntegrator] radiance is minus: ({}, {}, {})",
@@ -175,10 +177,10 @@ class PathTracing : public PathIntegrator {
       if (scene.intersect(ray, info)) {
         // russian roulette
         if (k > 0) {
-          const float russian_roulette_prob =
-              std::min(std::max(ray.throughput[0],
-                                std::max(ray.throughput[1], ray.throughput[2])),
-                       1.0f);
+          const float russian_roulette_prob = std::min(
+              (ray.throughput[0] + ray.throughput[1] + ray.throughput[2]) /
+                  3.0f,
+              1.0f);
           if (sampler.getNext1D() >= russian_roulette_prob) {
             break;
           }
