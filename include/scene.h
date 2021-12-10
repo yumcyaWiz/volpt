@@ -307,9 +307,7 @@ class Scene {
     densityGrids.push_back(densityGrid);
 
     // compute bounding box
-    AABB bbox = densityGrid->getBounds();
-    bbox.pMin = Vec3f(-1);
-    bbox.pMax = Vec3f(1);
+    const AABB bbox = densityGrid->getBounds();
     spdlog::info("[Scene] OpenVDB Volume bounding box");
     spdlog::info("[Scene] pMin: ({}, {}, {})", bbox.pMin[0], bbox.pMin[1],
                  bbox.pMin[2]);
@@ -331,12 +329,12 @@ class Scene {
       const Vec3f p7 = bbox.pMax;
 
       v[0] = p0;
-      v[1] = p1;
-      v[2] = p2;
+      v[1] = p2;
+      v[2] = p1;
 
       v[3] = p0;
-      v[4] = p2;
-      v[5] = p3;
+      v[4] = p3;
+      v[5] = p2;
 
       v[6] = p1;
       v[7] = p7;
@@ -347,12 +345,12 @@ class Scene {
       v[11] = p7;
 
       v[12] = p4;
-      v[13] = p5;
+      v[13] = p7;
       v[14] = p6;
 
       v[15] = p4;
       v[16] = p6;
-      v[17] = p7;
+      v[17] = p5;
 
       v[18] = p5;
       v[19] = p3;
