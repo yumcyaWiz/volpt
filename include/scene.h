@@ -299,7 +299,8 @@ class Scene {
     }
   }
 
-  void loadVDB(const std::filesystem::path& filepath) {
+  void loadVDB(const std::filesystem::path& filepath, float g,
+               const Vec3f& absorptionColor, const Vec3f& scatteringColor) {
     // create DensityGrid
     const std::shared_ptr<DensityGrid> densityGrid =
         std::make_shared<OpenVDBGrid>(filepath);
@@ -309,9 +310,125 @@ class Scene {
     const AABB bbox = densityGrid->getBounds();
 
     // create triangles from bounding box
+    std::vector<Vec3f> v(3 * 12);
+    // compute vertices
+    {
+      const Vec3f p0 = bbox.pMin;
+      const Vec3f p1 = Vec3f(bbox.pMax[0], bbox.pMin[1], bbox.pMin[2]);
+      const Vec3f p2 = Vec3f(bbox.pMax[0], bbox.pMax[1], bbox.pMin[2]);
+      const Vec3f p3 = Vec3f(bbox.pMin[0], bbox.pMax[1], bbox.pMin[2]);
+
+      const Vec3f p4 = Vec3f(bbox.pMax[0], bbox.pMin[1], bbox.pMax[2]);
+      const Vec3f p5 = Vec3f(bbox.pMin[0], bbox.pMin[1], bbox.pMax[2]);
+      const Vec3f p6 = Vec3f(bbox.pMin[0], bbox.pMax[1], bbox.pMax[2]);
+      const Vec3f p7 = bbox.pMax;
+
+      v[0] = p0;
+      v[1] = p1;
+      v[2] = p2;
+
+      v[3] = p0;
+      v[4] = p2;
+      v[5] = p3;
+
+      v[6] = p1;
+      v[7] = p4;
+      v[8] = p2;
+
+      v[9] = p1;
+      v[10] = p7;
+      v[11] = p2;
+
+      v[12] = p4;
+      v[13] = p5;
+      v[14] = p6;
+
+      v[15] = p4;
+      v[16] = p6;
+      v[17] = p7;
+
+      v[18] = p5;
+      v[19] = p0;
+      v[20] = p3;
+
+      v[21] = p5;
+      v[22] = p3;
+      v[23] = p6;
+
+      v[24] = p0;
+      v[25] = p5;
+      v[26] = p4;
+
+      v[27] = p0;
+      v[28] = p4;
+      v[29] = p1;
+
+      v[30] = p3;
+      v[31] = p2;
+      v[32] = p7;
+
+      v[33] = p3;
+      v[34] = p7;
+      v[35] = p6;
+    }
+
+    // compute face normal
+    std::vector<Vec3f> n(3 * 12);
+    for (int faceID = 0; faceID < v.size() / 3; ++faceID) {
+      const Vec3f p0 = v[3 * faceID];
+      const Vec3f p1 = v[3 * faceID + 1];
+      const Vec3f p2 = v[3 * faceID + 2];
+      const Vec3f v0 = normalize(p1 - p0);
+      const Vec3f v1 = normalize(p2 - p0);
+      const Vec3f norm = normalize(cross(v0, v1));
+      n.push_back(norm);
+      n.push_back(norm);
+      n.push_back(norm);
+    }
+
+    // compute texcoords
+    std::vector<Vec2f> t(3 * 12);
+    for (int faceID = 0; faceID < v.size() / 3; ++faceID) {
+      t.push_back(Vec2f(0, 0));
+      t.push_back(Vec2f(1, 0));
+      t.push_back(Vec2f(0, 1));
+    }
+
+    // add vertices, indices, normals, texcoords, triangles, bxdfs, lights,
+    // medium
+    for (int f = 0; f < v.size() / 3; ++f) {
+      for (int i = 0; i < 3; ++i) {
+        this->vertices.push_back(v[3 * f + i][0]);
+        this->vertices.push_back(v[3 * f + i][1]);
+        this->vertices.push_back(v[3 * f + i][2]);
+
+        this->normals.push_back(n[3 * f + i][0]);
+        this->normals.push_back(n[3 * f + i][1]);
+        this->normals.push_back(n[3 * f + i][2]);
+
+        this->texcoords.push_back(t[3 * f + i][0]);
+        this->texcoords.push_back(t[3 * f + i][1]);
+
+        this->indices.push_back(this->indices.size());
+      }
+
+      const uint32_t faceID = this->indices.size() / 3 - 1;
+
+      // add bxdf
+      this->bxdfs.emplace(faceID, nullptr);
+
+      // add light
+      this->lights.emplace(faceID, nullptr);
+
+      // add medium
+      const auto medium = std::make_shared<HeterogeneousMedium>(
+          g, densityGrid, absorptionColor, scatteringColor);
+      this->mediums.emplace(faceID, medium);
+    }
   }
 
   uint32_t nVertices() const { return vertices.size() / 3; }
+
   uint32_t nFaces() const { return indices.size() / 3; }
 
   void setupEmbree() {
