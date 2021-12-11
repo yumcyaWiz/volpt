@@ -337,60 +337,66 @@ class HeterogeneousMedium : public Medium {
     float _pdf;
     const uint32_t channel = distribution.sample(sampler.getNext1D(), _pdf);
 
-    // sample collision-free distance
-    const float t = -std::log(std::max(1.0f - sampler.getNext1D(), 0.0f)) *
-                    invMajorant[channel];
+    // loop until in-scattering or exiting medium happens
+    float t = ray.tmin;
+    Vec3f throughput_tracking(1, 1, 1);
+    while (true) {
+      // sample collision-free distance
+      const float s = -std::log(std::max(1.0f - sampler.getNext1D(), 0.0f)) *
+                      invMajorant[channel];
+      t += s;
 
-    // hit volume boundary, no collision
-    if (t > distToSurface - RAY_EPS) {
-      pos = ray(distToSurface);
-      dir = ray.direction;
+      // hit volume boundary, no collision
+      if (t > distToSurface - RAY_EPS) {
+        pos = ray(distToSurface);
+        dir = ray.direction;
 
-      const Vec3f tr = transmittance(ray.origin, pos);
-      const Vec3f p_surface = tr;
-      const Vec3f pdf = pdf_wavelength * p_surface;
-      throughput = tr / (pdf[0] + pdf[1] + pdf[2]);
-      return false;
-    }
+        const float dist_to_surface_from_current_pos =
+            s - (t - (distToSurface - RAY_EPS));
+        const Vec3f tr = exp(-majorant * dist_to_surface_from_current_pos);
+        const Vec3f p_surface = tr;
+        const Vec3f pdf = pdf_wavelength * p_surface;
+        throughput_tracking *= tr / (pdf[0] + pdf[1] + pdf[2]);
+        throughput = throughput_tracking;
 
-    // compute russian roulette probability
-    const float density =
-        this->densityMultiplier * this->volumeGridPtr->getDensity(ray(t));
-    const Vec3f sigma_s = scatteringColor * density;
-    const Vec3f sigma_a = absorptionColor * density;
-    const Vec3f sigma_n = majorant - sigma_s - sigma_a;
-    const Vec3f P_s = sigma_s / (sigma_s + sigma_n);
-    const Vec3f P_n = sigma_n / (sigma_s + sigma_n);
+        return false;
+      }
 
-    // In-Scattering
-    if (sampler.getNext1D() < P_s[channel]) {
-      pos = ray(t);
-      phaseFunction->sampleDirection(-ray.direction, sampler, dir);
+      // compute russian roulette probability
+      const float density =
+          this->densityMultiplier * this->volumeGridPtr->getDensity(ray(t));
+      const Vec3f sigma_s = scatteringColor * density;
+      const Vec3f sigma_a = absorptionColor * density;
+      const Vec3f sigma_n = majorant - sigma_s - sigma_a;
+      const Vec3f P_s = sigma_s / (sigma_s + sigma_n);
+      const Vec3f P_n = sigma_n / (sigma_s + sigma_n);
 
-      const Vec3f tr = transmittance(ray.origin, pos);
-      const Vec3f pdf_distance = majorant * tr;
-      const Vec3f pdf = pdf_wavelength * pdf_distance * P_s;
-      throughput = (tr * sigma_s) / (pdf[0] + pdf[1] + pdf[2]);
+      // In-Scattering
+      if (sampler.getNext1D() < P_s[channel]) {
+        pos = ray(t);
+        phaseFunction->sampleDirection(-ray.direction, sampler, dir);
 
-      return true;
-    }
-    // Null-Scattering
-    else {
-      pos = ray(t);
-      dir = ray.direction;
+        const Vec3f tr = exp(-majorant * s);
+        const Vec3f pdf_distance = majorant * tr;
+        const Vec3f pdf = pdf_wavelength * pdf_distance * P_s;
+        throughput_tracking *= (tr * sigma_s) / (pdf[0] + pdf[1] + pdf[2]);
+        throughput = throughput_tracking;
 
-      const Vec3f tr = transmittance(ray.origin, pos);
+        return true;
+      }
+
+      // Null-Scattering
+      // update throughput
+      const Vec3f tr = exp(-majorant * s);
       const Vec3f pdf_distance = majorant * tr;
       const Vec3f pdf = pdf_wavelength * pdf_distance * P_n;
-      throughput = (tr * sigma_n) / (pdf[0] + pdf[1] + pdf[2]);
-
-      return true;
+      throughput_tracking *= (tr * sigma_n) / (pdf[0] + pdf[1] + pdf[2]);
     }
   }
 
+  // TODO: implement this
   Vec3f transmittance(const Vec3f& p1, const Vec3f& p2) const override {
-    const float dist = length(p1 - p2);
-    return exp(-majorant * dist);
+    return Vec3f(0);
   }
 };
 
