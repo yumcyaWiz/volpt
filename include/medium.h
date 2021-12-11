@@ -300,6 +300,7 @@ class HeterogeneousMedium : public Medium {
   const Vec3f scatteringColor;
   const float densityMultiplier;
 
+  Vec3f singleScatteringAlbedo;
   Vec3f majorant;
   Vec3f invMajorant;
 
@@ -314,6 +315,9 @@ class HeterogeneousMedium : public Medium {
         absorptionColor(absorptionColor),
         scatteringColor(scatteringColor),
         densityMultiplier(densityMultiplier) {
+    singleScatteringAlbedo =
+        scatteringColor / (absorptionColor + scatteringColor);
+
     // compute majorant
     const float max_density =
         densityMultiplier * volumeGridPtr->getMaxDensity();
@@ -324,13 +328,13 @@ class HeterogeneousMedium : public Medium {
   // NOTE: ignore emission, using null-collision
   bool sampleMedium(const Ray& ray, float distToSurface, Sampler& sampler,
                     Vec3f& pos, Vec3f& dir, Vec3f& throughput) const override {
-    // sample wavelength by ray's throughput
+    // sample wavelength by throughput * single scattering albedo
 
     // Wrenninge, Magnus, Ryusuke Villemin, and Christophe Hery. Path traced
     // subsurface scattering using anisotropic phase functions and
     // non-exponential free flights. Tech. Rep. 17-07, Pixar. https://graphics.
     // pixar. com/library/PathTracedSubsurface, 2017.
-    const Vec3f throughput_albedo = ray.throughput;
+    const Vec3f throughput_albedo = ray.throughput * singleScatteringAlbedo;
     DiscreteEmpiricalDistribution1D distribution(throughput_albedo.getPtr(), 3);
     const Vec3f pdf_wavelength(distribution.getPDF(0), distribution.getPDF(1),
                                distribution.getPDF(2));
