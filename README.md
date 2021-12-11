@@ -22,6 +22,7 @@ WIP.
 * OpenMP
 * [spdlog](https://github.com/gabime/spdlog)
 * [Embree](https://github.com/embree/embree) (>=3)
+* [OpenVDB](https://www.openvdb.org/)
 
 ## Build
 
@@ -51,11 +52,9 @@ make
 
 ![](img/cornellbox_smoke.png)
 
-## Externals
+### Colored smoke
 
-* [spdlog](https://github.com/gabime/spdlog)
-* [Embree](https://github.com/embree/embree)
-* [tinyobjloader](https://github.com/tinyobjloader/tinyobjloader)
+![](img/smoke_test4.png)
 
 ## References
 
