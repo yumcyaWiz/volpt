@@ -301,6 +301,7 @@ class HeterogeneousMedium : public Medium {
   const float densityMultiplier;
 
   Vec3f majorant;
+  Vec3f invMajorant;
 
  public:
   HeterogeneousMedium(float g,
@@ -317,6 +318,7 @@ class HeterogeneousMedium : public Medium {
     const float max_density =
         densityMultiplier * volumeGridPtr->getMaxDensity();
     majorant = absorptionColor * max_density + scatteringColor * max_density;
+    invMajorant = 1.0f / majorant;
   }
 
   // NOTE: ignore emission, using null-collision
@@ -336,8 +338,8 @@ class HeterogeneousMedium : public Medium {
     const uint32_t channel = distribution.sample(sampler.getNext1D(), _pdf);
 
     // sample collision-free distance
-    const float t = -std::log(std::max(1.0f - sampler.getNext1D(), 0.0f)) /
-                    majorant[channel];
+    const float t = -std::log(std::max(1.0f - sampler.getNext1D(), 0.0f)) *
+                    invMajorant[channel];
 
     // hit volume boundary, no collision
     if (t > distToSurface - RAY_EPS) {
