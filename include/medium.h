@@ -325,15 +325,19 @@ class HeterogeneousMedium : public Medium {
   bool sampleMedium(const Ray& ray, float distToSurface, Sampler& sampler,
                     Vec3f& pos, Vec3f& dir, Vec3f& throughput) const override {
     // loop until in-scattering or exiting medium happens
-    float t = ray.tmin;
     Vec3f throughput_tracking(1, 1, 1);
+    float t = ray.tmin;
+
+    // init sigma_a
+    // NOTE: for computing throughput_albedo
+    const float density =
+        this->densityMultiplier * this->volumeGridPtr->getDensity(ray(t));
+    Vec3f sigma_a = absorptionColor * density;
+
     while (true) {
-      // sample wavelength by throughput
-      // Wrenninge, Magnus, Ryusuke Villemin, and Christophe Hery. Path traced
-      // subsurface scattering using anisotropic phase functions and
-      // non-exponential free flights. Tech. Rep. 17-07, Pixar.
-      // https://graphics. pixar. com/library/PathTracedSubsurface, 2017.
-      const Vec3f throughput_albedo = ray.throughput * throughput_tracking;
+      // sample wavelength by throughput * single (null|scattering) albedo
+      const Vec3f throughput_albedo = ray.throughput * throughput_tracking *
+                                      (majorant - sigma_a) * invMajorant;
       DiscreteEmpiricalDistribution1D distribution(throughput_albedo.getPtr(),
                                                    3);
       const Vec3f pdf_wavelength(distribution.getPDF(0), distribution.getPDF(1),
@@ -366,7 +370,7 @@ class HeterogeneousMedium : public Medium {
       const float density =
           this->densityMultiplier * this->volumeGridPtr->getDensity(ray(t));
       const Vec3f sigma_s = scatteringColor * density;
-      const Vec3f sigma_a = absorptionColor * density;
+      sigma_a = absorptionColor * density;
       const Vec3f sigma_n = majorant - sigma_s - sigma_a;
       const Vec3f P_s = sigma_s / (sigma_s + sigma_n);
       const Vec3f P_n = sigma_n / (sigma_s + sigma_n);
