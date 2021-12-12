@@ -383,9 +383,8 @@ class PathTracingNEE : public PathIntegrator {
               // add contribution
               const Medium* medium = ray.getCurrentMedium();
               const Vec3f f = medium->evalPhaseFunction(-ray.direction, dir);
-              const Vec3f sigma_s = medium->scatteringCoefficient(pos);
-              radiance += ray.throughput * throughput_medium * sigma_s *
-                          transmittance * f * Le / pdf_dir;
+              radiance += ray.throughput * throughput_medium * transmittance *
+                          f * Le / pdf_dir;
             }
           }
 
