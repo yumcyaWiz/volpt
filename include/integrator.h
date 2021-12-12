@@ -322,11 +322,17 @@ class PathTracingNEE : public PathIntegrator {
         shadow_ray.origin = shadow_info.surfaceInfo.position;
         shadow_ray.tmax -= shadow_info.t;
       } else {
-        return true;
+        // update transmittance
+        if (shadow_ray.hasMedium()) {
+          const Medium* medium = shadow_ray.getCurrentMedium();
+          transmittance *= medium->transmittance(
+              shadow_ray.origin, shadow_info.surfaceInfo.position);
+        }
+        break;
       }
     }
 
-    return false;
+    return true;
   }
 
  public:
@@ -383,8 +389,16 @@ class PathTracingNEE : public PathIntegrator {
               // add contribution
               const Medium* medium = ray.getCurrentMedium();
               const Vec3f f = medium->evalPhaseFunction(-ray.direction, dir);
-              radiance += ray.throughput * throughput_medium * transmittance *
-                          f * Le / pdf_dir;
+              const Vec3f Ls = transmittance * f * Le / pdf_dir;
+              // if (length(Ls) > 1.0f) {
+              //   spdlog::info("firefly");
+              //   spdlog::info("Ls: ({}, {}, {})", Ls[0], Ls[1], Ls[2]);
+              //   spdlog::info("transmittance: ({}, {}, {})", transmittance[0],
+              //                transmittance[1], transmittance[2]);
+              //   spdlog::info("f: ({}, {}, {})", f[0], f[1], f[2]);
+              //   spdlog::info("pdf_dir: {}", pdf_dir);
+              // }
+              radiance += ray.throughput * throughput_medium * Ls;
             }
           }
 
