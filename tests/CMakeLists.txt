@@ -3,3 +3,6 @@ target_link_libraries(sakana-test PRIVATE volpt)
 
 add_executable(test_hetero "test_hetero.cpp")
 target_link_libraries(test_hetero PRIVATE volpt)
+
+add_executable(test_nee "test_nee.cpp")
+target_link_libraries(test_nee PRIVATE volpt)
