@@ -8,6 +8,8 @@ WIP.
 
 ## Features
 
+* Unidirectional path tracing
+* Path tracing with next event estimation
 * Homogeneous medium
 * Heterogeneous medium
 * [Hero wavelength sampling](https://doi.org/10.1145/3306346.3323025) for chromatic absorption/scattering coefficient
@@ -44,7 +46,11 @@ make
 
 ![](img/CornellBox-Mist.png)
 
-### Subsurface scattering bunny
+### Subsurface scattering cornell box
+
+![](img/CornellBox_Homo.png)
+
+### Subsurface scattering bunny with glass surface
 
 ![](img/sss_bunny.png)
 
