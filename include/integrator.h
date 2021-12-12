@@ -383,8 +383,8 @@ class PathTracingNEE : public PathIntegrator {
               const Medium* medium = ray.getCurrentMedium();
               const Vec3f f = medium->evalPhaseFunction(-ray.direction, dir);
               const Vec3f sigma_s = medium->scatteringCoefficient(pos);
-              radiance +=
-                  ray.throughput * sigma_s * transmittance * f * Le / pdf_dir;
+              radiance += ray.throughput * throughput_medium * sigma_s *
+                          transmittance * f * Le / pdf_dir;
             }
           }
 
@@ -398,9 +398,12 @@ class PathTracingNEE : public PathIntegrator {
 
         if (on_surface) {
           // direct hit to the light
-          if (k == 0 && info.hitPrimitive->hasAreaLight()) {
-            radiance += ray.throughput *
-                        info.hitPrimitive->Le(info.surfaceInfo, -ray.direction);
+          if (info.hitPrimitive->hasAreaLight()) {
+            if (k == 0) {
+              radiance +=
+                  ray.throughput *
+                  info.hitPrimitive->Le(info.surfaceInfo, -ray.direction);
+            }
             break;
           }
 
