@@ -235,6 +235,7 @@ class PathTracing : public PathIntegrator {
           if (info.hitPrimitive->hasAreaLight()) {
             radiance += ray.throughput *
                         info.hitPrimitive->Le(info.surfaceInfo, -ray.direction);
+            break;
           }
 
           // sample direction by BxDF
@@ -333,6 +334,7 @@ class PathTracingNEE : public PathIntegrator {
           if (k == 0 && info.hitPrimitive->hasAreaLight()) {
             radiance += ray.throughput *
                         info.hitPrimitive->Le(info.surfaceInfo, -ray.direction);
+            break;
           }
 
           // next event estimation
