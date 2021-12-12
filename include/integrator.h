@@ -225,15 +225,15 @@ class PathTracing : public PathIntegrator {
         }
 
         // sample medium
-        bool on_surface = true;
+        bool is_scattered = false;
         if (ray.hasMedium()) {
           const Medium* medium = ray.getCurrentMedium();
 
           Vec3f pos;
           Vec3f dir;
           Vec3f throughput_medium;
-          on_surface = !medium->sampleMedium(ray, info.t, sampler, pos, dir,
-                                             throughput_medium);
+          is_scattered = medium->sampleMedium(ray, info.t, sampler, pos, dir,
+                                              throughput_medium);
 
           // advance ray
           ray.origin = pos;
@@ -243,7 +243,7 @@ class PathTracing : public PathIntegrator {
           ray.throughput *= throughput_medium;
         }
 
-        if (on_surface) {
+        if (!is_scattered) {
           // Le
           if (info.hitPrimitive->hasAreaLight()) {
             radiance += ray.throughput *
@@ -325,8 +325,8 @@ class PathTracingNEE : public PathIntegrator {
         // update transmittance
         if (shadow_ray.hasMedium()) {
           const Medium* medium = shadow_ray.getCurrentMedium();
-          transmittance *= medium->transmittance(
-              shadow_ray.origin, shadow_info.surfaceInfo.position);
+          transmittance *= medium->transmittance(shadow_ray.origin,
+                                                 shadow_ray(dist_to_light));
         }
         break;
       }
