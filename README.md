@@ -2,7 +2,7 @@
 
 ![](img/cornellbox_smoke.png)
 
-Brute force volumetric path tracer written in C++.
+Volumetric path tracer written in C++.
 
 WIP.
 
