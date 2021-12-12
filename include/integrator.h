@@ -316,18 +316,8 @@ class PathTracingNEE : public PathIntegrator {
               shadow_ray.origin, shadow_info.surfaceInfo.position);
         }
 
-        // push or pop medium
-        if (isTransmitted(-shadow_ray.direction, shadow_ray.direction,
-                          shadow_info.surfaceInfo.shadingNormal)) {
-          if (isEntered(shadow_ray.direction,
-                        shadow_info.surfaceInfo.shadingNormal)) {
-            if (shadow_info.hitPrimitive->hasMedium()) {
-              shadow_ray.pushMedium(shadow_info.hitPrimitive->getMedium());
-            }
-          } else {
-            shadow_ray.popMedium();
-          }
-        }
+        // update shadow ray's medium
+        updateMedium(shadow_ray, shadow_ray.direction, shadow_info);
 
         // advance shadow ray
         shadow_ray.origin = shadow_info.surfaceInfo.position;
@@ -432,17 +422,8 @@ class PathTracingNEE : public PathIntegrator {
                               pdf_dir;
           }
 
-          // push or pop medium
-          if (isTransmitted(-ray.direction, dir,
-                            info.surfaceInfo.shadingNormal)) {
-            if (isEntered(dir, info.surfaceInfo.shadingNormal)) {
-              if (info.hitPrimitive->hasMedium()) {
-                ray.pushMedium(info.hitPrimitive->getMedium());
-              }
-            } else {
-              ray.popMedium();
-            }
-          }
+          // update ray's medium
+          updateMedium(ray, dir, info);
 
           // update ray
           ray.origin = info.surfaceInfo.position;
