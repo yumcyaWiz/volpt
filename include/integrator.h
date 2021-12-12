@@ -70,8 +70,7 @@ class Integrator {
     }
   }
 
-  static Vec3f sampleDirectionToLight(const Scene& scene,
-                                      const SurfaceInfo& surface_info,
+  static Vec3f sampleDirectionToLight(const Scene& scene, const Vec3f& pos,
                                       Sampler& sampler, Vec3f& dir,
                                       float& dist_to_light, float& pdf) {
     // sample light
@@ -83,8 +82,8 @@ class Integrator {
     float light_pos_pdf;
     const SurfaceInfo light_surf = light->samplePoint(sampler, light_pos_pdf);
 
-    dir = normalize(light_surf.position - surface_info.position);
-    dist_to_light = length(light_surf.position - surface_info.position);
+    dir = normalize(light_surf.position - pos);
+    dist_to_light = length(light_surf.position - pos);
 
     // convert point pdf to directional pdf
     const float cos = std::abs(dot(-dir, light_surf.shadingNormal));
@@ -361,11 +360,33 @@ class PathTracingNEE : public PathIntegrator {
         if (ray.hasMedium()) {
           const Medium* medium = ray.getCurrentMedium();
 
+          // sample collision position, in-scattering direction
           Vec3f pos;
           Vec3f dir;
           Vec3f throughput_medium;
           on_surface = !medium->sampleMedium(ray, info.t, sampler, pos, dir,
                                              throughput_medium);
+
+          // next event estimation
+          if (!on_surface) {
+            // sample direction to the light
+            Vec3f dir;
+            float dist_to_light;
+            float pdf_dir;
+            const Vec3f Le = sampleDirectionToLight(scene, pos, sampler, dir,
+                                                    dist_to_light, pdf_dir);
+
+            // test visibility
+            Vec3f transmittance;
+            if (isVisible(ray, scene, pos, dir, dist_to_light, transmittance)) {
+              // add contribution
+              const Medium* medium = ray.getCurrentMedium();
+              const Vec3f f = medium->evalPhaseFunction(-ray.direction, dir);
+              const Vec3f sigma_s = medium->scatteringCoefficient(pos);
+              radiance +=
+                  ray.throughput * sigma_s * transmittance * f * Le / pdf_dir;
+            }
+          }
 
           // advance ray
           ray.origin = pos;
@@ -384,23 +405,24 @@ class PathTracingNEE : public PathIntegrator {
           }
 
           // next event estimation
-          {
+          if (info.hitPrimitive->hasSurface()) {
             // sample direction to the light
             Vec3f dir;
             float dist_to_light;
             float pdf_dir;
-            const Vec3f Le = sampleDirectionToLight(
-                scene, info.surfaceInfo, sampler, dir, dist_to_light, pdf_dir);
+            const Vec3f Le =
+                sampleDirectionToLight(scene, info.surfaceInfo.position,
+                                       sampler, dir, dist_to_light, pdf_dir);
 
             // test visibility
-            Vec3f _transmittance;
+            Vec3f transmittance;
             if (isVisible(ray, scene, info.surfaceInfo.position, dir,
-                          dist_to_light, _transmittance)) {
+                          dist_to_light, transmittance)) {
               // add contribution
               const Vec3f f = info.hitPrimitive->evaluateBxDF(
                   -ray.direction, dir, info.surfaceInfo,
                   TransportDirection::FROM_CAMERA);
-              radiance += ray.throughput * f *
+              radiance += ray.throughput * transmittance * f *
                           cosTerm(-ray.direction, dir, info.surfaceInfo,
                                   TransportDirection::FROM_CAMERA) *
                           Le / pdf_dir;
@@ -434,7 +456,6 @@ class PathTracingNEE : public PathIntegrator {
         break;
       }
     }
-
     return radiance;
   }
 };

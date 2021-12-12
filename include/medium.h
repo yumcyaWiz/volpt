@@ -75,6 +75,12 @@ class Medium {
                             Vec3f& throughput) const = 0;
 
   virtual Vec3f transmittance(const Vec3f& p1, const Vec3f& p2) const = 0;
+
+  Vec3f evalPhaseFunction(const Vec3f& wo, const Vec3f& wi) const {
+    return phaseFunction->evaluate(wo, wi);
+  }
+
+  virtual Vec3f scatteringCoefficient(const Vec3f& pos) const = 0;
 };
 
 class HomogeneousMedium : public Medium {
@@ -139,6 +145,10 @@ class HomogeneousMedium : public Medium {
     const float dist = length(p1 - p2);
     return exp(-sigma_t * dist);
   }
+
+  Vec3f scatteringCoefficient(const Vec3f& pos) const override {
+    return sigma_s;
+  }
 };
 
 class HomogeneousMediumAchromatic : public Medium {
@@ -182,6 +192,10 @@ class HomogeneousMediumAchromatic : public Medium {
   Vec3f transmittance(const Vec3f& p1, const Vec3f& p2) const override {
     const float dist = length(p1 - p2);
     return exp(-Vec3f(sigma_t) * dist);
+  }
+
+  Vec3f scatteringCoefficient(const Vec3f& pos) const override {
+    return Vec3f(sigma_s);
   }
 };
 
@@ -235,6 +249,10 @@ class HomogeneousMediumMIS : public Medium {
   Vec3f transmittance(const Vec3f& p1, const Vec3f& p2) const override {
     const float dist = length(p1 - p2);
     return exp(-sigma_t * dist);
+  }
+
+  Vec3f scatteringCoefficient(const Vec3f& pos) const override {
+    return sigma_s;
   }
 };
 
@@ -290,6 +308,10 @@ class HomogeneousMediumNoMIS : public Medium {
   Vec3f transmittance(const Vec3f& p1, const Vec3f& p2) const override {
     const float dist = length(p1 - p2);
     return exp(-sigma_t * dist);
+  }
+
+  Vec3f scatteringCoefficient(const Vec3f& pos) const override {
+    return sigma_s;
   }
 };
 
@@ -400,6 +422,11 @@ class HeterogeneousMedium : public Medium {
 
   // TODO: implement this
   Vec3f transmittance(const Vec3f& p1, const Vec3f& p2) const override {
+    return Vec3f(0);
+  }
+
+  // TODO: implement this
+  Vec3f scatteringCoefficient(const Vec3f& pos) const override {
     return Vec3f(0);
   }
 };
