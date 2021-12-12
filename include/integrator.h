@@ -340,11 +340,12 @@ class PathTracingNEE : public PathIntegrator {
     Ray ray = ray_in;
     ray.throughput = Vec3f(1, 1, 1);
 
-    for (uint32_t k = 0; k < maxDepth; ++k) {
+    uint32_t depth = 0;
+    while (depth < maxDepth) {
       IntersectInfo info;
       if (scene.intersect(ray, info)) {
         // russian roulette
-        if (k > 0) {
+        if (depth > 0) {
           const float russian_roulette_prob = std::min(
               (ray.throughput[0] + ray.throughput[1] + ray.throughput[2]) /
                   3.0f,
@@ -356,7 +357,7 @@ class PathTracingNEE : public PathIntegrator {
         }
 
         // sample medium
-        bool on_surface = true;
+        bool is_scattered = false;
         if (ray.hasMedium()) {
           const Medium* medium = ray.getCurrentMedium();
 
@@ -364,11 +365,11 @@ class PathTracingNEE : public PathIntegrator {
           Vec3f pos;
           Vec3f dir;
           Vec3f throughput_medium;
-          on_surface = !medium->sampleMedium(ray, info.t, sampler, pos, dir,
-                                             throughput_medium);
+          is_scattered = medium->sampleMedium(ray, info.t, sampler, pos, dir,
+                                              throughput_medium);
 
           // next event estimation
-          if (!on_surface) {
+          if (is_scattered) {
             // sample direction to the light
             Vec3f dir;
             float dist_to_light;
@@ -396,10 +397,11 @@ class PathTracingNEE : public PathIntegrator {
           ray.throughput *= throughput_medium;
         }
 
-        if (on_surface) {
+        bool is_reflected_or_refracted = false;
+        if (!is_scattered) {
           // direct hit to the light
           if (info.hitPrimitive->hasAreaLight()) {
-            if (k == 0) {
+            if (depth == 0) {
               radiance +=
                   ray.throughput *
                   info.hitPrimitive->Le(info.surfaceInfo, -ray.direction);
@@ -445,6 +447,8 @@ class PathTracingNEE : public PathIntegrator {
                               cosTerm(-ray.direction, dir, info.surfaceInfo,
                                       TransportDirection::FROM_CAMERA) /
                               pdf_dir;
+
+            is_reflected_or_refracted = true;
           }
 
           // update ray's medium
@@ -453,6 +457,11 @@ class PathTracingNEE : public PathIntegrator {
           // update ray
           ray.origin = info.surfaceInfo.position;
           ray.direction = dir;
+        }
+
+        // update depth
+        if (is_scattered || is_reflected_or_refracted) {
+          depth++;
         }
       } else {
         // ray goes out to the sky
