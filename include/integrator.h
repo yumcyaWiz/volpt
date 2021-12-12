@@ -148,7 +148,7 @@ class NormalIntegrator : public PathIntegrator {
   }
 };
 
-// implementation of path tracing
+// implementation of unidirectional path tracing
 class PathTracing : public PathIntegrator {
  private:
   const uint32_t maxDepth;
@@ -188,14 +188,15 @@ class PathTracing : public PathIntegrator {
         }
 
         // sample medium
+        bool on_surface = true;
         if (ray.hasMedium()) {
           const Medium* medium = ray.getCurrentMedium();
 
           Vec3f pos;
           Vec3f dir;
           Vec3f throughput_medium;
-          bool scattered = medium->sampleMedium(ray, info.t, sampler, pos, dir,
-                                                throughput_medium);
+          on_surface = !medium->sampleMedium(ray, info.t, sampler, pos, dir,
+                                             throughput_medium);
 
           // advance ray
           ray.origin = pos;
@@ -203,49 +204,46 @@ class PathTracing : public PathIntegrator {
 
           // update throughput
           ray.throughput *= throughput_medium;
+        }
 
-          // skip BSDF sampling
-          if (scattered) {
-            continue;
+        if (on_surface) {
+          // Le
+          if (info.hitPrimitive->hasAreaLight()) {
+            radiance += ray.throughput *
+                        info.hitPrimitive->Le(info.surfaceInfo, -ray.direction);
           }
-        }
 
-        // Le
-        if (info.hitPrimitive->hasAreaLight()) {
-          radiance += ray.throughput *
-                      info.hitPrimitive->Le(info.surfaceInfo, -ray.direction);
-        }
+          // sample direction by BxDF
+          Vec3f dir = ray.direction;
+          if (info.hitPrimitive->hasSurface()) {
+            float pdf_dir;
+            const Vec3f f = info.hitPrimitive->sampleBxDF(
+                -ray.direction, info.surfaceInfo,
+                TransportDirection::FROM_CAMERA, sampler, dir, pdf_dir);
 
-        // sample direction by BxDF
-        Vec3f dir = ray.direction;
-        if (info.hitPrimitive->hasSurface()) {
-          float pdf_dir;
-          const Vec3f f = info.hitPrimitive->sampleBxDF(
-              -ray.direction, info.surfaceInfo, TransportDirection::FROM_CAMERA,
-              sampler, dir, pdf_dir);
+            // update throughput
+            ray.throughput *= f *
+                              cosTerm(-ray.direction, dir, info.surfaceInfo,
+                                      TransportDirection::FROM_CAMERA) /
+                              pdf_dir;
+          }
 
-          // update throughput
-          ray.throughput *= f *
-                            cosTerm(-ray.direction, dir, info.surfaceInfo,
-                                    TransportDirection::FROM_CAMERA) /
-                            pdf_dir;
-        }
-
-        // push or pop medium
-        if (isTransmitted(-ray.direction, dir,
-                          info.surfaceInfo.shadingNormal)) {
-          if (isEntered(dir, info.surfaceInfo.shadingNormal)) {
-            if (info.hitPrimitive->hasMedium()) {
-              ray.pushMedium(info.hitPrimitive->getMedium());
+          // push or pop medium
+          if (isTransmitted(-ray.direction, dir,
+                            info.surfaceInfo.shadingNormal)) {
+            if (isEntered(dir, info.surfaceInfo.shadingNormal)) {
+              if (info.hitPrimitive->hasMedium()) {
+                ray.pushMedium(info.hitPrimitive->getMedium());
+              }
+            } else {
+              ray.popMedium();
             }
-          } else {
-            ray.popMedium();
           }
-        }
 
-        // update ray
-        ray.origin = info.surfaceInfo.position;
-        ray.direction = dir;
+          // update ray
+          ray.origin = info.surfaceInfo.position;
+          ray.direction = dir;
+        }
       } else {
         // ray goes out to the sky
         break;
