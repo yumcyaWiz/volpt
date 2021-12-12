@@ -295,9 +295,41 @@ class PathTracingNEE : public PathIntegrator {
     shadow_ray.tmax = dist_to_light - RAY_EPS;
 
     // trace shadow ray
-    IntersectInfo _shadow_info;
-    if (!scene.intersect(shadow_ray, _shadow_info)) {
-      return true;
+    transmittance = Vec3f(1);
+    while (true) {
+      IntersectInfo shadow_info;
+      if (scene.intersect(shadow_ray, shadow_info)) {
+        // occuluded
+        if (shadow_info.hitPrimitive->hasSurface()) {
+          return false;
+        }
+
+        // update transmittance
+        if (shadow_ray.hasMedium()) {
+          const Medium* medium = ray.getCurrentMedium();
+          transmittance *= medium->transmittance(
+              shadow_ray.origin, shadow_info.surfaceInfo.position);
+        }
+
+        // push or pop medium
+        if (isTransmitted(-shadow_ray.direction, shadow_ray.direction,
+                          shadow_info.surfaceInfo.shadingNormal)) {
+          if (isEntered(shadow_ray.direction,
+                        shadow_info.surfaceInfo.shadingNormal)) {
+            if (shadow_info.hitPrimitive->hasMedium()) {
+              shadow_ray.pushMedium(shadow_info.hitPrimitive->getMedium());
+            }
+          } else {
+            shadow_ray.popMedium();
+          }
+        }
+
+        // advance shadow ray
+        shadow_ray.origin = shadow_info.surfaceInfo.position;
+        shadow_ray.tmax -= shadow_info.t;
+      } else {
+        return true;
+      }
     }
 
     return false;
