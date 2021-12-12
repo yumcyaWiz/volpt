@@ -55,6 +55,30 @@ class Integrator {
   static bool isEntered(const Vec3f& wi, const Vec3f& n) {
     return dot(wi, n) < 0;
   }
+
+  static Vec3f sampleDirectionToLight(const Scene& scene,
+                                      const SurfaceInfo& surface_info,
+                                      Sampler& sampler, Vec3f& dir,
+                                      float& dist_to_light, float& pdf) {
+    // sample light
+    float light_choose_prob;
+    const std::shared_ptr<Light> light =
+        scene.sampleLight(sampler, light_choose_prob);
+
+    // sample point on light
+    float light_pos_pdf;
+    const SurfaceInfo light_surf = light->samplePoint(sampler, light_pos_pdf);
+
+    dir = normalize(light_surf.position - surface_info.position);
+    dist_to_light = length(light_surf.position - surface_info.position);
+
+    // convert point pdf to directional pdf
+    const float cos = std::abs(dot(-dir, light_surf.shadingNormal));
+    pdf = light_choose_prob *
+          (dist_to_light * dist_to_light / cos * light_pos_pdf);
+
+    return light->Le(light_surf, -dir);
+  }
 };
 
 // abstraction of path based integrator
