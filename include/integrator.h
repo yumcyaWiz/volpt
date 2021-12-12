@@ -310,7 +310,7 @@ class PathTracingNEE : public PathIntegrator {
 
         // update transmittance
         if (shadow_ray.hasMedium()) {
-          const Medium* medium = ray.getCurrentMedium();
+          const Medium* medium = shadow_ray.getCurrentMedium();
           transmittance *= medium->transmittance(
               shadow_ray.origin, shadow_info.surfaceInfo.position);
         }
