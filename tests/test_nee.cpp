@@ -6,8 +6,8 @@
 int main() {
   const uint32_t width = 512;
   const uint32_t height = 512;
-  const uint32_t n_samples = 100;
-  const uint32_t max_depth = 10000;
+  const uint32_t n_samples = 10000;
+  const uint32_t max_depth = 100;
 
   Image image(width, height);
 
@@ -21,7 +21,9 @@ int main() {
 
   // build scene
   Scene scene;
-  scene.loadObj("CornellBox-Original.obj");
+  // scene.loadObj("CornellBox-Original.obj");
+  scene.loadObj("CornellBox-Homo.obj");
+  // scene.loadObj("CornellBox-Mist.obj");
   scene.build();
 
   // render
