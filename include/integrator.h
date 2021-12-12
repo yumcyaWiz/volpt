@@ -47,6 +47,14 @@ class Integrator {
       std::exit(EXIT_FAILURE);
     }
   }
+
+  static bool isTransmitted(const Vec3f& wo, const Vec3f& wi, const Vec3f& n) {
+    return (dot(wo, n) < 0) != (dot(wi, n) < 0);
+  }
+
+  static bool isEntered(const Vec3f& wi, const Vec3f& n) {
+    return dot(wi, n) < 0;
+  }
 };
 
 // abstraction of path based integrator
@@ -153,17 +161,107 @@ class PathTracing : public PathIntegrator {
  private:
   const uint32_t maxDepth;
 
-  static bool isTransmitted(const Vec3f& wo, const Vec3f& wi, const Vec3f& n) {
-    return (dot(wo, n) < 0) != (dot(wi, n) < 0);
-  }
-
-  static bool isEntered(const Vec3f& wi, const Vec3f& n) {
-    return dot(wi, n) < 0;
-  }
-
  public:
   PathTracing(const std::shared_ptr<Camera>& camera, uint32_t n_samples,
               uint32_t maxDepth = 100)
+      : PathIntegrator(camera, n_samples), maxDepth(maxDepth) {}
+
+  Vec3f integrate(const Ray& ray_in, const Scene& scene,
+                  Sampler& sampler) const override {
+    Vec3f radiance(0);
+    Ray ray = ray_in;
+    ray.throughput = Vec3f(1, 1, 1);
+
+    for (uint32_t k = 0; k < maxDepth; ++k) {
+      IntersectInfo info;
+      if (scene.intersect(ray, info)) {
+        // russian roulette
+        if (k > 0) {
+          const float russian_roulette_prob = std::min(
+              (ray.throughput[0] + ray.throughput[1] + ray.throughput[2]) /
+                  3.0f,
+              1.0f);
+          if (sampler.getNext1D() >= russian_roulette_prob) {
+            break;
+          }
+          ray.throughput /= russian_roulette_prob;
+        }
+
+        // sample medium
+        bool on_surface = true;
+        if (ray.hasMedium()) {
+          const Medium* medium = ray.getCurrentMedium();
+
+          Vec3f pos;
+          Vec3f dir;
+          Vec3f throughput_medium;
+          on_surface = !medium->sampleMedium(ray, info.t, sampler, pos, dir,
+                                             throughput_medium);
+
+          // advance ray
+          ray.origin = pos;
+          ray.direction = dir;
+
+          // update throughput
+          ray.throughput *= throughput_medium;
+        }
+
+        if (on_surface) {
+          // Le
+          if (info.hitPrimitive->hasAreaLight()) {
+            radiance += ray.throughput *
+                        info.hitPrimitive->Le(info.surfaceInfo, -ray.direction);
+          }
+
+          // sample direction by BxDF
+          Vec3f dir = ray.direction;
+          if (info.hitPrimitive->hasSurface()) {
+            float pdf_dir;
+            const Vec3f f = info.hitPrimitive->sampleBxDF(
+                -ray.direction, info.surfaceInfo,
+                TransportDirection::FROM_CAMERA, sampler, dir, pdf_dir);
+
+            // update throughput
+            ray.throughput *= f *
+                              cosTerm(-ray.direction, dir, info.surfaceInfo,
+                                      TransportDirection::FROM_CAMERA) /
+                              pdf_dir;
+          }
+
+          // push or pop medium
+          if (isTransmitted(-ray.direction, dir,
+                            info.surfaceInfo.shadingNormal)) {
+            if (isEntered(dir, info.surfaceInfo.shadingNormal)) {
+              if (info.hitPrimitive->hasMedium()) {
+                ray.pushMedium(info.hitPrimitive->getMedium());
+              }
+            } else {
+              ray.popMedium();
+            }
+          }
+
+          // update ray
+          ray.origin = info.surfaceInfo.position;
+          ray.direction = dir;
+        }
+      } else {
+        // ray goes out to the sky
+        break;
+      }
+    }
+
+    return radiance;
+  }
+};
+
+// implementation of path tracing with next event estimation
+class PathTracingNEE : public PathIntegrator {
+ private:
+  const uint32_t maxDepth;
+
+ public:
+  PathTracingNEE(const std::shared_ptr<Camera>& camera, uint32_t n_samples,
+                 uint32_t maxDepth = 100)
       : PathIntegrator(camera, n_samples), maxDepth(maxDepth) {}
 
   Vec3f integrate(const Ray& ray_in, const Scene& scene,
