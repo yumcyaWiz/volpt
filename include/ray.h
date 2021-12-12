@@ -17,7 +17,7 @@ class Ray {
   Vec3f throughput;
 
   static constexpr float tmin = RAY_EPS;
-  static constexpr float tmax = std::numeric_limits<float>::max();
+  float tmax = std::numeric_limits<float>::max();
 
   Ray() {}
   Ray(const Vec3f& origin, const Vec3f& direction)

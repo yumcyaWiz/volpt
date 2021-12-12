@@ -329,10 +329,34 @@ class PathTracingNEE : public PathIntegrator {
         }
 
         if (on_surface) {
-          // Le
-          if (info.hitPrimitive->hasAreaLight()) {
+          // direct hit to the light
+          if (k == 0 && info.hitPrimitive->hasAreaLight()) {
             radiance += ray.throughput *
                         info.hitPrimitive->Le(info.surfaceInfo, -ray.direction);
+          }
+
+          // next event estimation
+          {
+            Vec3f dir;
+            float dist_to_light;
+            float pdf_dir;
+            const Vec3f Le = sampleDirectionToLight(
+                scene, info.surfaceInfo, sampler, dir, dist_to_light, pdf_dir);
+
+            // trace shadow ray
+            Ray shadow_ray(info.surfaceInfo.position, dir);
+            shadow_ray.tmax = dist_to_light - RAY_EPS;
+            IntersectInfo _shadow_info;
+            if (!scene.intersect(shadow_ray, _shadow_info)) {
+              // add contribution
+              const Vec3f f = info.hitPrimitive->evaluateBxDF(
+                  -ray.direction, dir, info.surfaceInfo,
+                  TransportDirection::FROM_CAMERA);
+              radiance += ray.throughput * f *
+                          cosTerm(-ray.direction, dir, info.surfaceInfo,
+                                  TransportDirection::FROM_CAMERA) *
+                          Le / pdf_dir;
+            }
           }
 
           // sample direction by BxDF
