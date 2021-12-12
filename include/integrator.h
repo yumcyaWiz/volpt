@@ -56,6 +56,20 @@ class Integrator {
     return dot(wi, n) < 0;
   }
 
+  // push or pop medium
+  static void updateMedium(Ray& ray, const Vec3f& wi,
+                           const IntersectInfo& info) {
+    if (isTransmitted(-ray.direction, wi, info.surfaceInfo.shadingNormal)) {
+      if (isEntered(wi, info.surfaceInfo.shadingNormal)) {
+        if (info.hitPrimitive->hasMedium()) {
+          ray.pushMedium(info.hitPrimitive->getMedium());
+        }
+      } else {
+        ray.popMedium();
+      }
+    }
+  }
+
   static Vec3f sampleDirectionToLight(const Scene& scene,
                                       const SurfaceInfo& surface_info,
                                       Sampler& sampler, Vec3f& dir,
@@ -253,17 +267,8 @@ class PathTracing : public PathIntegrator {
                               pdf_dir;
           }
 
-          // push or pop medium
-          if (isTransmitted(-ray.direction, dir,
-                            info.surfaceInfo.shadingNormal)) {
-            if (isEntered(dir, info.surfaceInfo.shadingNormal)) {
-              if (info.hitPrimitive->hasMedium()) {
-                ray.pushMedium(info.hitPrimitive->getMedium());
-              }
-            } else {
-              ray.popMedium();
-            }
-          }
+          // update ray's medium
+          updateMedium(ray, dir, info);
 
           // update ray
           ray.origin = info.surfaceInfo.position;
