@@ -284,6 +284,25 @@ class PathTracingNEE : public PathIntegrator {
  private:
   const uint32_t maxDepth;
 
+  static bool isVisible(const Ray& ray, const Scene& scene, const Vec3f& origin,
+                        const Vec3f& dir, float dist_to_light,
+                        Vec3f& transmittance) {
+    // create shadow ray
+    // copy ray's mediums
+    Ray shadow_ray = ray;
+    shadow_ray.origin = origin;
+    shadow_ray.direction = dir;
+    shadow_ray.tmax = dist_to_light - RAY_EPS;
+
+    // trace shadow ray
+    IntersectInfo _shadow_info;
+    if (!scene.intersect(shadow_ray, _shadow_info)) {
+      return true;
+    }
+
+    return false;
+  }
+
  public:
   PathTracingNEE(const std::shared_ptr<Camera>& camera, uint32_t n_samples,
                  uint32_t maxDepth = 100)
@@ -339,17 +358,17 @@ class PathTracingNEE : public PathIntegrator {
 
           // next event estimation
           {
+            // sample direction to the light
             Vec3f dir;
             float dist_to_light;
             float pdf_dir;
             const Vec3f Le = sampleDirectionToLight(
                 scene, info.surfaceInfo, sampler, dir, dist_to_light, pdf_dir);
 
-            // trace shadow ray
-            Ray shadow_ray(info.surfaceInfo.position, dir);
-            shadow_ray.tmax = dist_to_light - RAY_EPS;
-            IntersectInfo _shadow_info;
-            if (!scene.intersect(shadow_ray, _shadow_info)) {
+            // test visibility
+            Vec3f _transmittance;
+            if (isVisible(ray, scene, info.surfaceInfo.position, dir,
+                          dist_to_light, _transmittance)) {
               // add contribution
               const Vec3f f = info.hitPrimitive->evaluateBxDF(
                   -ray.direction, dir, info.surfaceInfo,
