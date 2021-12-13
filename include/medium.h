@@ -460,7 +460,7 @@ class HeterogeneousMedium : public Medium {
 
   Vec3f transmittance(const Vec3f& p1, const Vec3f& p2,
                       Sampler& sampler) const override {
-    return deltaTrackingTransmittance(p1, p2, sampler);
+    return ratioTrackingTransmittance(p1, p2, sampler);
   }
 };
 
