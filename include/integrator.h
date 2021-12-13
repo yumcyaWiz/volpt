@@ -289,7 +289,7 @@ class PathTracingNEE : public PathIntegrator {
   const uint32_t maxDepth;
 
   static bool isVisible(const Ray& ray, const Scene& scene, const Vec3f& origin,
-                        const Vec3f& dir, float dist_to_light,
+                        const Vec3f& dir, float dist_to_light, Sampler& sampler,
                         Vec3f& transmittance) {
     // create shadow ray
     // copy ray's mediums
@@ -312,7 +312,7 @@ class PathTracingNEE : public PathIntegrator {
         if (shadow_ray.hasMedium()) {
           const Medium* medium = shadow_ray.getCurrentMedium();
           transmittance *= medium->transmittance(
-              shadow_ray.origin, shadow_info.surfaceInfo.position);
+              shadow_ray.origin, shadow_info.surfaceInfo.position, sampler);
         }
 
         // update shadow ray's medium
@@ -325,8 +325,8 @@ class PathTracingNEE : public PathIntegrator {
         // update transmittance
         if (shadow_ray.hasMedium()) {
           const Medium* medium = shadow_ray.getCurrentMedium();
-          transmittance *= medium->transmittance(shadow_ray.origin,
-                                                 shadow_ray(dist_to_light));
+          transmittance *= medium->transmittance(
+              shadow_ray.origin, shadow_ray(dist_to_light), sampler);
         }
         break;
       }
@@ -385,7 +385,8 @@ class PathTracingNEE : public PathIntegrator {
 
             // test visibility
             Vec3f transmittance;
-            if (isVisible(ray, scene, pos, dir, dist_to_light, transmittance)) {
+            if (isVisible(ray, scene, pos, dir, dist_to_light, sampler,
+                          transmittance)) {
               // add contribution
               const Medium* medium = ray.getCurrentMedium();
               const Vec3f f = medium->evalPhaseFunction(-ray.direction, dir);
@@ -435,7 +436,7 @@ class PathTracingNEE : public PathIntegrator {
             // test visibility
             Vec3f transmittance;
             if (isVisible(ray, scene, info.surfaceInfo.position, dir,
-                          dist_to_light, transmittance)) {
+                          dist_to_light, sampler, transmittance)) {
               // add contribution
               const Vec3f f = info.hitPrimitive->evaluateBxDF(
                   -ray.direction, dir, info.surfaceInfo,

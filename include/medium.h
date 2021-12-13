@@ -74,7 +74,8 @@ class Medium {
                             Sampler& sampler, Vec3f& pos, Vec3f& dir,
                             Vec3f& throughput) const = 0;
 
-  virtual Vec3f transmittance(const Vec3f& p1, const Vec3f& p2) const = 0;
+  virtual Vec3f transmittance(const Vec3f& p1, const Vec3f& p2,
+                              Sampler& sampler) const = 0;
 
   Vec3f evalPhaseFunction(const Vec3f& wo, const Vec3f& wi) const {
     return phaseFunction->evaluate(wo, wi);
@@ -119,7 +120,7 @@ class HomogeneousMedium : public Medium {
       pos = ray(distToSurface);
       dir = ray.direction;
 
-      const Vec3f tr = transmittance(ray.origin, pos);
+      const Vec3f tr = transmittance(ray.origin, pos, sampler);
       const Vec3f p_surface = tr;
       const Vec3f pdf = pdf_wavelength * p_surface;
       throughput = tr / (pdf[0] + pdf[1] + pdf[2]);
@@ -131,7 +132,7 @@ class HomogeneousMedium : public Medium {
     phaseFunction->sampleDirection(-ray.direction, sampler, dir);
 
     pos = ray(t);
-    const Vec3f tr = transmittance(ray.origin, pos);
+    const Vec3f tr = transmittance(ray.origin, pos, sampler);
     const Vec3f pdf_distance = sigma_t * tr;
     const Vec3f pdf = pdf_wavelength * pdf_distance;
     throughput = (tr * sigma_s) / (pdf[0] + pdf[1] + pdf[2]);
@@ -139,7 +140,8 @@ class HomogeneousMedium : public Medium {
     return true;
   }
 
-  Vec3f transmittance(const Vec3f& p1, const Vec3f& p2) const override {
+  Vec3f transmittance(const Vec3f& p1, const Vec3f& p2,
+                      Sampler& sampler) const override {
     const float dist = length(p1 - p2);
     return exp(-sigma_t * dist);
   }
@@ -183,7 +185,8 @@ class HomogeneousMediumAchromatic : public Medium {
     return true;
   }
 
-  Vec3f transmittance(const Vec3f& p1, const Vec3f& p2) const override {
+  Vec3f transmittance(const Vec3f& p1, const Vec3f& p2,
+                      Sampler& sampler) const override {
     const float dist = length(p1 - p2);
     return exp(-Vec3f(sigma_t) * dist);
   }
@@ -218,7 +221,7 @@ class HomogeneousMediumMIS : public Medium {
     if (t > distToSurface - RAY_EPS) {
       pos = ray(distToSurface);
       dir = ray.direction;
-      const Vec3f tr = transmittance(ray.origin, pos);
+      const Vec3f tr = transmittance(ray.origin, pos, sampler);
       throughput = tr / ((tr[0] + tr[1] + tr[2]) / 3.0f);
       return false;
     }
@@ -228,7 +231,7 @@ class HomogeneousMediumMIS : public Medium {
     phaseFunction->sampleDirection(-ray.direction, sampler, dir);
 
     pos = ray(t);
-    const Vec3f tr = transmittance(ray.origin, pos);
+    const Vec3f tr = transmittance(ray.origin, pos, sampler);
     const Vec3f tr_sigma_t = tr * sigma_t;
     throughput = (tr * sigma_s) /
                  ((tr_sigma_t[0] + tr_sigma_t[1] + tr_sigma_t[2]) / 3.0f);
@@ -236,7 +239,8 @@ class HomogeneousMediumMIS : public Medium {
     return true;
   }
 
-  Vec3f transmittance(const Vec3f& p1, const Vec3f& p2) const override {
+  Vec3f transmittance(const Vec3f& p1, const Vec3f& p2,
+                      Sampler& sampler) const override {
     const float dist = length(p1 - p2);
     return exp(-sigma_t * dist);
   }
@@ -274,7 +278,7 @@ class HomogeneousMediumNoMIS : public Medium {
     if (t > distToSurface - RAY_EPS) {
       pos = ray(distToSurface);
       dir = ray.direction;
-      const Vec3f tr = transmittance(ray.origin, pos);
+      const Vec3f tr = transmittance(ray.origin, pos, sampler);
       const float p_surface = std::exp(-sigma_t[channel] * distToSurface);
       throughput = 1.0f / 3.0f * tr / (pdf_wavelength * p_surface);
       return false;
@@ -285,13 +289,14 @@ class HomogeneousMediumNoMIS : public Medium {
     phaseFunction->sampleDirection(-ray.direction, sampler, dir);
 
     pos = ray(t);
-    throughput = 1.0f / 3.0f * transmittance(ray.origin, pos) * sigma_s /
+    throughput = 1.0f / 3.0f * transmittance(ray.origin, pos, sampler) * sigma_s /
                  (pdf_wavelength * pdf_distance);
 
     return true;
   }
 
-  Vec3f transmittance(const Vec3f& p1, const Vec3f& p2) const override {
+  Vec3f transmittance(const Vec3f& p1, const Vec3f& p2,
+                      Sampler& sampler) const override {
     const float dist = length(p1 - p2);
     return exp(-sigma_t * dist);
   }
@@ -402,8 +407,11 @@ class HeterogeneousMedium : public Medium {
     }
   }
 
+  Vec3f deltaTracking(const Vec3f& p1, const Vec3f& p2) const {}
+
   // TODO: implement this
-  Vec3f transmittance(const Vec3f& p1, const Vec3f& p2) const override {
+  Vec3f transmittance(const Vec3f& p1, const Vec3f& p2,
+                      Sampler& sampler) const override {
     return Vec3f(0);
   }
 };
