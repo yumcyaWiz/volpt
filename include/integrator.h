@@ -336,7 +336,7 @@ class PathTracingNEE : public PathIntegrator {
         if (shadow_ray.hasMedium()) {
           const Medium* medium = shadow_ray.getCurrentMedium();
           transmittance *= medium->transmittance(shadow_ray.origin,
-                                                 shadow_ray(dist_to_light),
+                                                 shadow_ray(shadow_ray.tmax),
                                                  ray.throughput, sampler);
         }
         break;
