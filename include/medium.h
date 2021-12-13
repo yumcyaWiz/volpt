@@ -389,23 +389,15 @@ class HeterogeneousMedium : public Medium {
                                    Sampler& sampler) const {
     const float distToEnd = length(p1 - p2);
 
+    // sample wavelength
+    Vec3f pmf_wavelength;
+    const uint32_t channel =
+        sampleWavelength(throughput, Vec3f(1), sampler, pmf_wavelength);
+
     // loop until collision occurs or exit medium
     float t = 0;
-    Vec3f throughput_tracking(1, 1, 1);
     Ray ray(p1, normalize(p2 - p1));
-
-    // init sigma_a
-    // NOTE: for computing throughput_albedo
-    const float density = getDensity(ray(t));
-    Vec3f sigma_a = getSigma_a(density);
-
     while (true) {
-      // sample wavelength
-      Vec3f pmf_wavelength;
-      const uint32_t channel = sampleWavelength(
-          throughput * throughput_tracking, (majorant - sigma_a) * invMajorant,
-          sampler, pmf_wavelength);
-
       // sample collision-free distance
       const float s = -std::log(std::max(1.0f - sampler.getNext1D(), 0.0f)) *
                       invMajorant[channel];
@@ -418,22 +410,14 @@ class HeterogeneousMedium : public Medium {
 
       // compute russian roulette probability
       const float density = getDensity(ray(t));
+      const Vec3f sigma_a = getSigma_a(density);
       const Vec3f sigma_s = getSigma_s(density);
-      sigma_a = getSigma_a(density);
-      const Vec3f sigma_n = getSigma_n(density);
-      const Vec3f P_s = sigma_s / (sigma_s + sigma_n);
-      const Vec3f P_n = sigma_n / (sigma_s + sigma_n);
+      const Vec3f P_c = (sigma_s + sigma_a) / majorant;
 
-      // scattering
-      if (sampler.getNext1D() < P_s[channel]) {
+      // collision
+      if (sampler.getNext1D() < P_c[channel]) {
         return Vec3f(0);
       }
-
-      // null-scattering
-      const Vec3f tr = analyticTransmittance(s, majorant);
-      const Vec3f pdf_distance = majorant * tr;
-      const Vec3f pdf = pmf_wavelength * pdf_distance * P_n;
-      throughput_tracking *= (tr * sigma_n) / (pdf[0] + pdf[1] + pdf[2]);
     }
   }
 
