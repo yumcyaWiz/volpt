@@ -70,6 +70,25 @@ class Medium {
     return exp(-sigma * t);
   }
 
+  // sample index of wavelength by (throughput * single scattering albedo)
+  // Wrenninge, Magnus, Ryusuke Villemin, and Christophe Hery. Path traced
+  // subsurface scattering using anisotropic phase functions and
+  // non-exponential free flights. Tech. Rep. 17-07, Pixar. https://graphics.
+  // pixar. com/library/PathTracedSubsurface, 2017.
+  static uint32_t sampleWavelength(const Vec3f& throughput, const Vec3f& albedo,
+                                   Sampler& sampler, Vec3f& pmf) {
+    // create empirical discrete distribution
+    const Vec3f throughput_albedo = throughput * albedo;
+    DiscreteEmpiricalDistribution1D distribution(throughput_albedo.getPtr(), 3);
+    pmf = Vec3f(distribution.getPDF(0), distribution.getPDF(1),
+                distribution.getPDF(2));
+
+    // sample index of wavelength from empirical discrete distribution
+    float _pdf;
+    const uint32_t channel = distribution.sample(sampler.getNext1D(), _pdf);
+    return channel;
+  }
+
  public:
   Medium(float g) : phaseFunction(std::make_shared<HenyeyGreenstein>(g)) {}
 
@@ -102,18 +121,10 @@ class HomogeneousMedium : public Medium {
   // NOTE: ignore emission
   bool sampleMedium(const Ray& ray, float distToSurface, Sampler& sampler,
                     Vec3f& pos, Vec3f& dir, Vec3f& throughput) const override {
-    // sample wavelength by throughput * single scattering albedo
-
-    // Wrenninge, Magnus, Ryusuke Villemin, and Christophe Hery. Path traced
-    // subsurface scattering using anisotropic phase functions and
-    // non-exponential free flights. Tech. Rep. 17-07, Pixar. https://graphics.
-    // pixar. com/library/PathTracedSubsurface, 2017.
-    const Vec3f throughput_albedo = ray.throughput * (sigma_s / sigma_t);
-    DiscreteEmpiricalDistribution1D distribution(throughput_albedo.getPtr(), 3);
-    const Vec3f pdf_wavelength(distribution.getPDF(0), distribution.getPDF(1),
-                               distribution.getPDF(2));
-    float _pdf;
-    const uint32_t channel = distribution.sample(sampler.getNext1D(), _pdf);
+    // sample wavelength
+    Vec3f pdf_wavelength;
+    const uint32_t channel = sampleWavelength(
+        ray.throughput, (sigma_s / sigma_t), sampler, pdf_wavelength);
 
     // sample collision-free distance
     const float t = -std::log(std::max(1.0f - sampler.getNext1D(), 0.0f)) /
@@ -212,7 +223,6 @@ class HomogeneousMediumMIS : public Medium {
   // NOTE: ignore emission
   bool sampleMedium(const Ray& ray, float distToSurface, Sampler& sampler,
                     Vec3f& pos, Vec3f& dir, Vec3f& throughput) const override {
-    // NOTE: Hero wavelength sampling with balance heuristics
     // sample wavelength
     int channel = 3 * sampler.getNext1D();
     if (channel == 3) channel--;
@@ -347,15 +357,11 @@ class HeterogeneousMedium : public Medium {
     Vec3f sigma_a = absorptionColor * density;
 
     while (true) {
-      // sample wavelength by throughput * single (null|scattering) albedo
-      const Vec3f throughput_albedo = ray.throughput * throughput_tracking *
-                                      (majorant - sigma_a) * invMajorant;
-      DiscreteEmpiricalDistribution1D distribution(throughput_albedo.getPtr(),
-                                                   3);
-      const Vec3f pdf_wavelength(distribution.getPDF(0), distribution.getPDF(1),
-                                 distribution.getPDF(2));
-      float _pdf;
-      const uint32_t channel = distribution.sample(sampler.getNext1D(), _pdf);
+      // sample wavelength
+      Vec3f pdf_wavelength;
+      const uint32_t channel = sampleWavelength(
+          ray.throughput * throughput_tracking,
+          (majorant - sigma_a) * invMajorant, sampler, pdf_wavelength);
 
       // sample collision-free distance
       const float s = -std::log(std::max(1.0f - sampler.getNext1D(), 0.0f)) *
@@ -428,15 +434,11 @@ class HeterogeneousMedium : public Medium {
     Vec3f sigma_a = absorptionColor * density;
 
     while (true) {
-      // sample wavelength by throughput * single (null|scattering) albedo
-      const Vec3f throughput_albedo = ray_throughput * throughput_tracking *
-                                      (majorant - sigma_a) * invMajorant;
-      DiscreteEmpiricalDistribution1D distribution(throughput_albedo.getPtr(),
-                                                   3);
-      const Vec3f pdf_wavelength(distribution.getPDF(0), distribution.getPDF(1),
-                                 distribution.getPDF(2));
-      float _pdf;
-      const uint32_t channel = distribution.sample(sampler.getNext1D(), _pdf);
+      // sample wavelength
+      Vec3f pdf_wavelength;
+      const uint32_t channel = sampleWavelength(
+          ray.throughput * throughput_tracking,
+          (majorant - sigma_a) * invMajorant, sampler, pdf_wavelength);
 
       // sample collision-free distance
       const float s = -std::log(std::max(1.0f - sampler.getNext1D(), 0.0f)) *
