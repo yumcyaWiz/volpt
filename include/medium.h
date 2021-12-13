@@ -309,7 +309,8 @@ class HeterogeneousMedium : public Medium {
     invMajorant = 1.0f / majorant;
   }
 
-  // NOTE: ignore emission, using null-collision
+  // delta tracking
+  // ignore emission
   bool sampleMedium(const Ray& ray, float distToSurface, Sampler& sampler,
                     Vec3f& pos, Vec3f& dir, Vec3f& throughput) const override {
     // loop until in-scattering or exiting medium happens
@@ -340,12 +341,20 @@ class HeterogeneousMedium : public Medium {
 
         const float dist_to_surface_from_current_pos =
             s - (t - (distToSurface - RAY_EPS));
-        const Vec3f tr =
-            analyticTransmittance(dist_to_surface_from_current_pos, Vec3f(majorant));
+        const Vec3f tr = analyticTransmittance(dist_to_surface_from_current_pos,
+                                               Vec3f(majorant));
         const Vec3f p_surface = tr;
         const Vec3f pdf = pmf_wavelength * p_surface;
         throughput_tracking *= tr / (pdf[0] + pdf[1] + pdf[2]);
-        throughput = throughput_tracking;
+
+        // nan check
+        if (std::isnan(throughput_tracking[0]) ||
+            std::isnan(throughput_tracking[1]) ||
+            std::isnan(throughput_tracking[2])) {
+          throughput = Vec3f(0);
+        } else {
+          throughput = throughput_tracking;
+        }
 
         return false;
       }
@@ -367,7 +376,15 @@ class HeterogeneousMedium : public Medium {
         const Vec3f pdf_distance = majorant * tr;
         const Vec3f pdf = pmf_wavelength * pdf_distance * P_s;
         throughput_tracking *= (tr * sigma_s) / (pdf[0] + pdf[1] + pdf[2]);
-        throughput = throughput_tracking;
+
+        // nan check
+        if (std::isnan(throughput_tracking[0]) ||
+            std::isnan(throughput_tracking[1]) ||
+            std::isnan(throughput_tracking[2])) {
+          throughput = Vec3f(0);
+        } else {
+          throughput = throughput_tracking;
+        }
 
         return true;
       }
