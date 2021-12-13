@@ -326,6 +326,26 @@ class HeterogeneousMedium : public Medium {
   Vec3f majorant;
   Vec3f invMajorant;
 
+  float getDensity(const Vec3f& p) const {
+    return this->densityMultiplier * this->densityGridPtr->getDensity(p);
+  }
+
+  float getMaxDensity() const {
+    return this->densityMultiplier * this->densityGridPtr->getMaxDensity();
+  }
+
+  Vec3f getSigma_a(float density) const {
+    return this->absorptionColor * density;
+  }
+
+  Vec3f getSigma_s(float density) const {
+    return this->scatteringColor * density;
+  }
+
+  Vec3f getSigma_n(float density) const {
+    return majorant - getSigma_a(density) - getSigma_s(density);
+  }
+
  public:
   HeterogeneousMedium(float g, const DensityGrid* densityGridPtr,
                       const Vec3f& absorptionColor,
@@ -337,8 +357,7 @@ class HeterogeneousMedium : public Medium {
         scatteringColor(scatteringColor),
         densityMultiplier(densityMultiplier) {
     // compute majorant
-    const float max_density =
-        densityMultiplier * densityGridPtr->getMaxDensity();
+    const float max_density = getMaxDensity();
     majorant = absorptionColor * max_density + scatteringColor * max_density;
     invMajorant = 1.0f / majorant;
   }
@@ -352,8 +371,7 @@ class HeterogeneousMedium : public Medium {
 
     // init sigma_a
     // NOTE: for computing throughput_albedo
-    const float density =
-        this->densityMultiplier * this->densityGridPtr->getDensity(ray(t));
+    const float density = getDensity(ray(t));
     Vec3f sigma_a = absorptionColor * density;
 
     while (true) {
@@ -386,11 +404,10 @@ class HeterogeneousMedium : public Medium {
       }
 
       // compute russian roulette probability
-      const float density =
-          this->densityMultiplier * this->densityGridPtr->getDensity(ray(t));
-      const Vec3f sigma_s = scatteringColor * density;
-      sigma_a = absorptionColor * density;
-      const Vec3f sigma_n = majorant - sigma_s - sigma_a;
+      const float density = getDensity(ray(t));
+      const Vec3f sigma_s = getSigma_s(density);
+      sigma_a = getSigma_a(density);
+      const Vec3f sigma_n = getSigma_n(density);
       const Vec3f P_s = sigma_s / (sigma_s + sigma_n);
       const Vec3f P_n = sigma_n / (sigma_s + sigma_n);
 
@@ -429,9 +446,8 @@ class HeterogeneousMedium : public Medium {
 
     // init sigma_a
     // NOTE: for computing throughput_albedo
-    const float density =
-        this->densityMultiplier * this->densityGridPtr->getDensity(ray(t));
-    Vec3f sigma_a = absorptionColor * density;
+    const float density = getDensity(ray(t));
+    Vec3f sigma_a = getSigma_a(density);
 
     while (true) {
       // sample wavelength
@@ -451,11 +467,10 @@ class HeterogeneousMedium : public Medium {
       }
 
       // compute russian roulette probability
-      const float density =
-          this->densityMultiplier * this->densityGridPtr->getDensity(ray(t));
-      const Vec3f sigma_s = scatteringColor * density;
-      sigma_a = absorptionColor * density;
-      const Vec3f sigma_n = majorant - sigma_s - sigma_a;
+      const float density = getDensity(ray(t));
+      const Vec3f sigma_s = getSigma_s(density);
+      sigma_a = getSigma_a(density);
+      const Vec3f sigma_n = getSigma_n(density);
       const Vec3f P_s = sigma_s / (sigma_s + sigma_n);
       const Vec3f P_n = sigma_n / (sigma_s + sigma_n);
 
