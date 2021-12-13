@@ -297,15 +297,16 @@ class PathTracingNEE : public PathIntegrator {
  private:
   const uint32_t maxDepth;
 
-  static bool isVisible(const Ray& ray, const Scene& scene, const Vec3f& origin,
-                        const Vec3f& dir, float dist_to_light, Sampler& sampler,
-                        Vec3f& transmittance) {
+  static bool isVisible(const Scene& scene, const Vec3f& origin,
+                        const Vec3f& dir, float dist_to_light,
+                        std::stack<const Medium*>& current_mediums,
+                        Sampler& sampler, Vec3f& transmittance) {
     // create shadow ray
-    // copy ray's mediums
-    Ray shadow_ray = ray;
+    Ray shadow_ray;
     shadow_ray.origin = origin;
     shadow_ray.direction = dir;
     shadow_ray.tmax = dist_to_light - RAY_EPS;
+    shadow_ray.mediums = current_mediums;
 
     // trace shadow ray
     transmittance = Vec3f(1);
@@ -394,7 +395,7 @@ class PathTracingNEE : public PathIntegrator {
 
             // test visibility
             Vec3f transmittance;
-            if (isVisible(ray, scene, pos, dir, dist_to_light, sampler,
+            if (isVisible(scene, pos, dir, dist_to_light, ray.mediums, sampler,
                           transmittance)) {
               // add contribution
               const Medium* medium = ray.getCurrentMedium();
@@ -444,8 +445,8 @@ class PathTracingNEE : public PathIntegrator {
 
             // test visibility
             Vec3f transmittance;
-            if (isVisible(ray, scene, info.surfaceInfo.position, dir,
-                          dist_to_light, sampler, transmittance)) {
+            if (isVisible(scene, info.surfaceInfo.position, dir,
+                          dist_to_light, ray.mediums, sampler, transmittance)) {
               // add contribution
               const Vec3f f = info.hitPrimitive->evaluateBxDF(
                   -ray.direction, dir, info.surfaceInfo,

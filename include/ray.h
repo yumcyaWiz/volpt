@@ -8,13 +8,11 @@
 class Medium;
 
 class Ray {
- private:
-  std::stack<const Medium*> mediums;
-
  public:
   Vec3f origin;
   Vec3f direction;
   Vec3f throughput;
+  std::stack<const Medium*> mediums;
 
   static constexpr float tmin = RAY_EPS;
   float tmax = std::numeric_limits<float>::max();
