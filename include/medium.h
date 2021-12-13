@@ -122,9 +122,9 @@ class HomogeneousMedium : public Medium {
   bool sampleMedium(const Ray& ray, float distToSurface, Sampler& sampler,
                     Vec3f& pos, Vec3f& dir, Vec3f& throughput) const override {
     // sample wavelength
-    Vec3f pdf_wavelength;
+    Vec3f pmf_wavelength;
     const uint32_t channel = sampleWavelength(
-        ray.throughput, (sigma_s / sigma_t), sampler, pdf_wavelength);
+        ray.throughput, (sigma_s / sigma_t), sampler, pmf_wavelength);
 
     // sample collision-free distance
     const float t = -std::log(std::max(1.0f - sampler.getNext1D(), 0.0f)) /
@@ -137,7 +137,7 @@ class HomogeneousMedium : public Medium {
 
       const Vec3f tr = analyticTransmittance(distToSurface, sigma_t);
       const Vec3f p_surface = tr;
-      const Vec3f pdf = pdf_wavelength * p_surface;
+      const Vec3f pdf = pmf_wavelength * p_surface;
       throughput = tr / (pdf[0] + pdf[1] + pdf[2]);
       return false;
     }
@@ -149,7 +149,7 @@ class HomogeneousMedium : public Medium {
     pos = ray(t);
     const Vec3f tr = analyticTransmittance(t, sigma_t);
     const Vec3f pdf_distance = sigma_t * tr;
-    const Vec3f pdf = pdf_wavelength * pdf_distance;
+    const Vec3f pdf = pmf_wavelength * pdf_distance;
     throughput = (tr * sigma_s) / (pdf[0] + pdf[1] + pdf[2]);
 
     return true;
@@ -280,7 +280,7 @@ class HomogeneousMediumNoMIS : public Medium {
     // sample wavelength
     int channel = 3 * sampler.getNext1D();
     if (channel == 3) channel--;
-    const float pdf_wavelength = 1.0f / 3.0f;
+    const float pmf_wavelength = 1.0f / 3.0f;
 
     // sample collision-free distance
     const float t = -std::log(std::max(1.0f - sampler.getNext1D(), 0.0f)) /
@@ -294,7 +294,7 @@ class HomogeneousMediumNoMIS : public Medium {
       dir = ray.direction;
       const Vec3f tr = analyticTransmittance(distToSurface, sigma_t);
       const float p_surface = std::exp(-sigma_t[channel] * distToSurface);
-      throughput = 1.0f / 3.0f * tr / (pdf_wavelength * p_surface);
+      throughput = 1.0f / 3.0f * tr / (pmf_wavelength * p_surface);
       return false;
     }
 
@@ -304,7 +304,7 @@ class HomogeneousMediumNoMIS : public Medium {
 
     pos = ray(t);
     throughput = 1.0f / 3.0f * analyticTransmittance(t, sigma_t) * sigma_s /
-                 (pdf_wavelength * pdf_distance);
+                 (pmf_wavelength * pdf_distance);
 
     return true;
   }
@@ -358,10 +358,10 @@ class HeterogeneousMedium : public Medium {
 
     while (true) {
       // sample wavelength
-      Vec3f pdf_wavelength;
+      Vec3f pmf_wavelength;
       const uint32_t channel = sampleWavelength(
           ray.throughput * throughput_tracking,
-          (majorant - sigma_a) * invMajorant, sampler, pdf_wavelength);
+          (majorant - sigma_a) * invMajorant, sampler, pmf_wavelength);
 
       // sample collision-free distance
       const float s = -std::log(std::max(1.0f - sampler.getNext1D(), 0.0f)) *
@@ -378,7 +378,7 @@ class HeterogeneousMedium : public Medium {
         const Vec3f tr =
             analyticTransmittance(dist_to_surface_from_current_pos, majorant);
         const Vec3f p_surface = tr;
-        const Vec3f pdf = pdf_wavelength * p_surface;
+        const Vec3f pdf = pmf_wavelength * p_surface;
         throughput_tracking *= tr / (pdf[0] + pdf[1] + pdf[2]);
         throughput = throughput_tracking;
 
@@ -401,7 +401,7 @@ class HeterogeneousMedium : public Medium {
 
         const Vec3f tr = analyticTransmittance(s, majorant);
         const Vec3f pdf_distance = majorant * tr;
-        const Vec3f pdf = pdf_wavelength * pdf_distance * P_s;
+        const Vec3f pdf = pmf_wavelength * pdf_distance * P_s;
         throughput_tracking *= (tr * sigma_s) / (pdf[0] + pdf[1] + pdf[2]);
         throughput = throughput_tracking;
 
@@ -412,7 +412,7 @@ class HeterogeneousMedium : public Medium {
       // update throughput
       const Vec3f tr = analyticTransmittance(s, majorant);
       const Vec3f pdf_distance = majorant * tr;
-      const Vec3f pdf = pdf_wavelength * pdf_distance * P_n;
+      const Vec3f pdf = pmf_wavelength * pdf_distance * P_n;
       throughput_tracking *= (tr * sigma_n) / (pdf[0] + pdf[1] + pdf[2]);
     }
   }
@@ -435,10 +435,10 @@ class HeterogeneousMedium : public Medium {
 
     while (true) {
       // sample wavelength
-      Vec3f pdf_wavelength;
+      Vec3f pmf_wavelength;
       const uint32_t channel = sampleWavelength(
           ray.throughput * throughput_tracking,
-          (majorant - sigma_a) * invMajorant, sampler, pdf_wavelength);
+          (majorant - sigma_a) * invMajorant, sampler, pmf_wavelength);
 
       // sample collision-free distance
       const float s = -std::log(std::max(1.0f - sampler.getNext1D(), 0.0f)) *
@@ -467,7 +467,7 @@ class HeterogeneousMedium : public Medium {
       // null-scattering
       const Vec3f tr = analyticTransmittance(s, majorant);
       const Vec3f pdf_distance = majorant * tr;
-      const Vec3f pdf = pdf_wavelength * pdf_distance * P_n;
+      const Vec3f pdf = pmf_wavelength * pdf_distance * P_n;
       throughput_tracking *= (tr * sigma_n) / (pdf[0] + pdf[1] + pdf[2]);
     }
   }
