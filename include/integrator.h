@@ -209,11 +209,12 @@ class PathTracing : public PathIntegrator {
     Ray ray = ray_in;
     ray.throughput = Vec3f(1, 1, 1);
 
-    for (uint32_t k = 0; k < maxDepth; ++k) {
+    uint32_t depth = 0;
+    while (depth < maxDepth) {
       IntersectInfo info;
       if (scene.intersect(ray, info)) {
         // russian roulette
-        if (k > 0) {
+        if (depth > 0) {
           const float russian_roulette_prob = std::min(
               (ray.throughput[0] + ray.throughput[1] + ray.throughput[2]) /
                   3.0f,
@@ -243,6 +244,7 @@ class PathTracing : public PathIntegrator {
           ray.throughput *= throughput_medium;
         }
 
+        bool is_reflected_or_refracted = false;
         if (!is_scattered) {
           // Le
           if (info.hitPrimitive->hasAreaLight()) {
@@ -264,6 +266,8 @@ class PathTracing : public PathIntegrator {
                               cosTerm(-ray.direction, dir, info.surfaceInfo,
                                       TransportDirection::FROM_CAMERA) /
                               pdf_dir;
+
+            is_reflected_or_refracted = true;
           }
 
           // update ray's medium
@@ -272,6 +276,11 @@ class PathTracing : public PathIntegrator {
           // update ray
           ray.origin = info.surfaceInfo.position;
           ray.direction = dir;
+        }
+
+        // update depth
+        if (is_scattered || is_reflected_or_refracted) {
+          depth++;
         }
       } else {
         // ray goes out to the sky
@@ -312,7 +321,8 @@ class PathTracingNEE : public PathIntegrator {
         if (shadow_ray.hasMedium()) {
           const Medium* medium = shadow_ray.getCurrentMedium();
           transmittance *= medium->transmittance(
-              shadow_ray.origin, shadow_info.surfaceInfo.position, ray.throughput, sampler);
+              shadow_ray.origin, shadow_info.surfaceInfo.position,
+              ray.throughput, sampler);
         }
 
         // update shadow ray's medium
@@ -325,8 +335,9 @@ class PathTracingNEE : public PathIntegrator {
         // update transmittance
         if (shadow_ray.hasMedium()) {
           const Medium* medium = shadow_ray.getCurrentMedium();
-          transmittance *= medium->transmittance(
-              shadow_ray.origin, shadow_ray(dist_to_light), ray.throughput, sampler);
+          transmittance *= medium->transmittance(shadow_ray.origin,
+                                                 shadow_ray(dist_to_light),
+                                                 ray.throughput, sampler);
         }
         break;
       }
