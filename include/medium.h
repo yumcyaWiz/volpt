@@ -421,21 +421,22 @@ class HeterogeneousMedium : public Medium {
     }
   }
 
-  Vec3f ratioTrackingTransmittance(const Vec3f& p1, const Vec3f& p2,
-                                   const Vec3f& throughput,
-                                   Sampler& sampler) const {
+  Vec3f ratioTrackingSingleWavelengthTransmittance(const Vec3f& p1,
+                                                   const Vec3f& p2,
+                                                   const Vec3f& throughput,
+                                                   Sampler& sampler) const {
     const float distToEnd = length(p1 - p2);
+
+    // sample wavelength
+    Vec3f pmf_wavelength;
+    const uint32_t channel =
+        sampleWavelength(Vec3f(1), Vec3f(1), sampler, pmf_wavelength);
 
     // loop until collision occurs or exit medium
     float t = 0;
     Ray ray(p1, normalize(p2 - p1));
-    Vec3f transmittance(1);
+    float transmittance = 1.0f;
     while (true) {
-      // sample wavelength
-      Vec3f pmf_wavelength;
-      const uint32_t channel =
-          sampleWavelength(Vec3f(1), Vec3f(1), sampler, pmf_wavelength);
-
       // sample collision-free distance
       const float s = -std::log(std::max(1.0f - sampler.getNext1D(), 0.0f)) *
                       invMajorant[channel];
@@ -446,21 +447,21 @@ class HeterogeneousMedium : public Medium {
         break;
       }
 
-      // compute null scattering probability
+      // ratio tracking
       const float density = getDensity(ray(t));
       const Vec3f sigma_n = getSigma_n(density);
-      const Vec3f P_n = sigma_n * invMajorant;
-
-      // ratio tracking
-      transmittance *= P_n;
+      transmittance *= (sigma_n * invMajorant)[channel];
     }
 
-    return transmittance;
+    Vec3f ret;
+    ret[channel] = transmittance / pmf_wavelength[channel];
+    return ret;
   }
 
   Vec3f transmittance(const Vec3f& p1, const Vec3f& p2, const Vec3f& throughput,
                       Sampler& sampler) const override {
-    return ratioTrackingTransmittance(p1, p2, throughput, sampler);
+    return ratioTrackingSingleWavelengthTransmittance(p1, p2, throughput,
+                                                      sampler);
   }
 };
 
