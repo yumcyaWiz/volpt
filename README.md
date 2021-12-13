@@ -13,9 +13,8 @@ WIP.
 * Homogeneous medium
 * Heterogeneous medium
 * [Hero wavelength sampling](https://doi.org/10.1145/3306346.3323025) for chromatic absorption/scattering coefficient
-* [Artist friendly parameter](https://doi.org/10.1145/2897839.2927433) to controll absorption/scattering coefficient
+* [Artist friendly parameter](https://doi.org/10.1145/2897839.2927433) to control absorption/scattering coefficient
 * Random walk subsurface scattering
-* Ratio tracking
 * Load obj model
 
 ## Requirements
