@@ -289,8 +289,8 @@ class HomogeneousMediumNoMIS : public Medium {
     phaseFunction->sampleDirection(-ray.direction, sampler, dir);
 
     pos = ray(t);
-    throughput = 1.0f / 3.0f * transmittance(ray.origin, pos, sampler) * sigma_s /
-                 (pdf_wavelength * pdf_distance);
+    throughput = 1.0f / 3.0f * transmittance(ray.origin, pos, sampler) *
+                 sigma_s / (pdf_wavelength * pdf_distance);
 
     return true;
   }
@@ -304,7 +304,7 @@ class HomogeneousMediumNoMIS : public Medium {
 
 class HeterogeneousMedium : public Medium {
  private:
-  const std::shared_ptr<DensityGrid> volumeGridPtr;
+  const DensityGrid* densityGridPtr;
   const Vec3f absorptionColor;
   const Vec3f scatteringColor;
   const float densityMultiplier;
@@ -313,19 +313,18 @@ class HeterogeneousMedium : public Medium {
   Vec3f invMajorant;
 
  public:
-  HeterogeneousMedium(float g,
-                      const std::shared_ptr<DensityGrid>& volumeGridPtr,
+  HeterogeneousMedium(float g, const DensityGrid* densityGridPtr,
                       const Vec3f& absorptionColor,
                       const Vec3f& scatteringColor,
                       float densityMultiplier = 1.0f)
       : Medium(g),
-        volumeGridPtr(volumeGridPtr),
+        densityGridPtr(densityGridPtr),
         absorptionColor(absorptionColor),
         scatteringColor(scatteringColor),
         densityMultiplier(densityMultiplier) {
     // compute majorant
     const float max_density =
-        densityMultiplier * volumeGridPtr->getMaxDensity();
+        densityMultiplier * densityGridPtr->getMaxDensity();
     majorant = absorptionColor * max_density + scatteringColor * max_density;
     invMajorant = 1.0f / majorant;
   }
@@ -340,7 +339,7 @@ class HeterogeneousMedium : public Medium {
     // init sigma_a
     // NOTE: for computing throughput_albedo
     const float density =
-        this->densityMultiplier * this->volumeGridPtr->getDensity(ray(t));
+        this->densityMultiplier * this->densityGridPtr->getDensity(ray(t));
     Vec3f sigma_a = absorptionColor * density;
 
     while (true) {
@@ -377,7 +376,7 @@ class HeterogeneousMedium : public Medium {
 
       // compute russian roulette probability
       const float density =
-          this->densityMultiplier * this->volumeGridPtr->getDensity(ray(t));
+          this->densityMultiplier * this->densityGridPtr->getDensity(ray(t));
       const Vec3f sigma_s = scatteringColor * density;
       sigma_a = absorptionColor * density;
       const Vec3f sigma_n = majorant - sigma_s - sigma_a;

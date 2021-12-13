@@ -440,7 +440,7 @@ class Scene {
 
       // add medium
       const auto medium = std::make_shared<HeterogeneousMedium>(
-          g, densityGrid, sigma_a, sigma_s, densityMultiplier);
+          g, densityGrid.get(), sigma_a, sigma_s, densityMultiplier);
       this->mediums.emplace(faceID, medium);
     }
   }
