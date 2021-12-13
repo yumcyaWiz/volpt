@@ -66,6 +66,10 @@ class Medium {
  protected:
   const std::shared_ptr<PhaseFunction> phaseFunction;
 
+  static Vec3f analyticTransmittance(float t, const Vec3f& sigma) {
+    return exp(-sigma * t);
+  }
+
  public:
   Medium(float g) : phaseFunction(std::make_shared<HenyeyGreenstein>(g)) {}
 
@@ -120,7 +124,7 @@ class HomogeneousMedium : public Medium {
       pos = ray(distToSurface);
       dir = ray.direction;
 
-      const Vec3f tr = transmittance(ray.origin, pos, sampler);
+      const Vec3f tr = analyticTransmittance(distToSurface, sigma_t);
       const Vec3f p_surface = tr;
       const Vec3f pdf = pdf_wavelength * p_surface;
       throughput = tr / (pdf[0] + pdf[1] + pdf[2]);
@@ -132,7 +136,7 @@ class HomogeneousMedium : public Medium {
     phaseFunction->sampleDirection(-ray.direction, sampler, dir);
 
     pos = ray(t);
-    const Vec3f tr = transmittance(ray.origin, pos, sampler);
+    const Vec3f tr = analyticTransmittance(t, sigma_t);
     const Vec3f pdf_distance = sigma_t * tr;
     const Vec3f pdf = pdf_wavelength * pdf_distance;
     throughput = (tr * sigma_s) / (pdf[0] + pdf[1] + pdf[2]);
@@ -142,8 +146,8 @@ class HomogeneousMedium : public Medium {
 
   Vec3f transmittance(const Vec3f& p1, const Vec3f& p2,
                       Sampler& sampler) const override {
-    const float dist = length(p1 - p2);
-    return exp(-sigma_t * dist);
+    const float t = length(p1 - p2);
+    return analyticTransmittance(t, sigma_t);
   }
 };
 
@@ -187,8 +191,8 @@ class HomogeneousMediumAchromatic : public Medium {
 
   Vec3f transmittance(const Vec3f& p1, const Vec3f& p2,
                       Sampler& sampler) const override {
-    const float dist = length(p1 - p2);
-    return exp(-Vec3f(sigma_t) * dist);
+    const float t = length(p1 - p2);
+    return analyticTransmittance(t, Vec3f(sigma_t));
   }
 };
 
@@ -221,7 +225,7 @@ class HomogeneousMediumMIS : public Medium {
     if (t > distToSurface - RAY_EPS) {
       pos = ray(distToSurface);
       dir = ray.direction;
-      const Vec3f tr = transmittance(ray.origin, pos, sampler);
+      const Vec3f tr = analyticTransmittance(distToSurface, sigma_t);
       throughput = tr / ((tr[0] + tr[1] + tr[2]) / 3.0f);
       return false;
     }
@@ -231,7 +235,7 @@ class HomogeneousMediumMIS : public Medium {
     phaseFunction->sampleDirection(-ray.direction, sampler, dir);
 
     pos = ray(t);
-    const Vec3f tr = transmittance(ray.origin, pos, sampler);
+    const Vec3f tr = analyticTransmittance(t, sigma_t);
     const Vec3f tr_sigma_t = tr * sigma_t;
     throughput = (tr * sigma_s) /
                  ((tr_sigma_t[0] + tr_sigma_t[1] + tr_sigma_t[2]) / 3.0f);
@@ -241,8 +245,8 @@ class HomogeneousMediumMIS : public Medium {
 
   Vec3f transmittance(const Vec3f& p1, const Vec3f& p2,
                       Sampler& sampler) const override {
-    const float dist = length(p1 - p2);
-    return exp(-sigma_t * dist);
+    const float t = length(p1 - p2);
+    return analyticTransmittance(t, sigma_t);
   }
 };
 
@@ -278,7 +282,7 @@ class HomogeneousMediumNoMIS : public Medium {
     if (t > distToSurface - RAY_EPS) {
       pos = ray(distToSurface);
       dir = ray.direction;
-      const Vec3f tr = transmittance(ray.origin, pos, sampler);
+      const Vec3f tr = analyticTransmittance(distToSurface, sigma_t);
       const float p_surface = std::exp(-sigma_t[channel] * distToSurface);
       throughput = 1.0f / 3.0f * tr / (pdf_wavelength * p_surface);
       return false;
@@ -289,16 +293,16 @@ class HomogeneousMediumNoMIS : public Medium {
     phaseFunction->sampleDirection(-ray.direction, sampler, dir);
 
     pos = ray(t);
-    throughput = 1.0f / 3.0f * transmittance(ray.origin, pos, sampler) *
-                 sigma_s / (pdf_wavelength * pdf_distance);
+    throughput = 1.0f / 3.0f * analyticTransmittance(t, sigma_t) * sigma_s /
+                 (pdf_wavelength * pdf_distance);
 
     return true;
   }
 
   Vec3f transmittance(const Vec3f& p1, const Vec3f& p2,
                       Sampler& sampler) const override {
-    const float dist = length(p1 - p2);
-    return exp(-sigma_t * dist);
+    const float t = length(p1 - p2);
+    return analyticTransmittance(t, sigma_t);
   }
 };
 
@@ -365,7 +369,8 @@ class HeterogeneousMedium : public Medium {
 
         const float dist_to_surface_from_current_pos =
             s - (t - (distToSurface - RAY_EPS));
-        const Vec3f tr = exp(-majorant * dist_to_surface_from_current_pos);
+        const Vec3f tr =
+            analyticTransmittance(dist_to_surface_from_current_pos, majorant);
         const Vec3f p_surface = tr;
         const Vec3f pdf = pdf_wavelength * p_surface;
         throughput_tracking *= tr / (pdf[0] + pdf[1] + pdf[2]);
@@ -388,7 +393,7 @@ class HeterogeneousMedium : public Medium {
         pos = ray(t);
         phaseFunction->sampleDirection(-ray.direction, sampler, dir);
 
-        const Vec3f tr = exp(-majorant * s);
+        const Vec3f tr = analyticTransmittance(s, majorant);
         const Vec3f pdf_distance = majorant * tr;
         const Vec3f pdf = pdf_wavelength * pdf_distance * P_s;
         throughput_tracking *= (tr * sigma_s) / (pdf[0] + pdf[1] + pdf[2]);
@@ -399,7 +404,7 @@ class HeterogeneousMedium : public Medium {
 
       // Null-Scattering
       // update throughput
-      const Vec3f tr = exp(-majorant * s);
+      const Vec3f tr = analyticTransmittance(s, majorant);
       const Vec3f pdf_distance = majorant * tr;
       const Vec3f pdf = pdf_wavelength * pdf_distance * P_n;
       throughput_tracking *= (tr * sigma_n) / (pdf[0] + pdf[1] + pdf[2]);
@@ -458,7 +463,7 @@ class HeterogeneousMedium : public Medium {
       }
 
       // null-scattering
-      const Vec3f tr = exp(-majorant * s);
+      const Vec3f tr = analyticTransmittance(s, majorant);
       const Vec3f pdf_distance = majorant * tr;
       const Vec3f pdf = pdf_wavelength * pdf_distance * P_n;
       throughput_tracking *= (tr * sigma_n) / (pdf[0] + pdf[1] + pdf[2]);
