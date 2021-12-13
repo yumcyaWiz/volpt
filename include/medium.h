@@ -276,6 +276,10 @@ class HeterogeneousMedium : public Medium {
   Vec3f majorant;
   Vec3f invMajorant;
 
+  // NOTE: for computing transmittance
+  float majorantMax;
+  float invMajorantMax;
+
   float getDensity(const Vec3f& p) const {
     return this->densityMultiplier * this->densityGridPtr->getDensity(p);
   }
@@ -292,10 +296,6 @@ class HeterogeneousMedium : public Medium {
     return this->scatteringColor * density;
   }
 
-  Vec3f getSigma_n(float density) const {
-    return majorant - getSigma_a(density) - getSigma_s(density);
-  }
-
  public:
   HeterogeneousMedium(float g, const DensityGrid* densityGridPtr,
                       const Vec3f& absorptionColor,
@@ -310,6 +310,10 @@ class HeterogeneousMedium : public Medium {
     const float max_density = getMaxDensity();
     majorant = absorptionColor * max_density + scatteringColor * max_density;
     invMajorant = 1.0f / majorant;
+
+    // compute wavelength independent majorant
+    majorantMax = std::max(majorant[0], std::max(majorant[1], majorant[2]));
+    invMajorantMax = 1.0f / majorantMax;
   }
 
   // NOTE: ignore emission, using null-collision
@@ -357,7 +361,7 @@ class HeterogeneousMedium : public Medium {
       const float density = getDensity(ray(t));
       const Vec3f sigma_s = getSigma_s(density);
       sigma_a = getSigma_a(density);
-      const Vec3f sigma_n = getSigma_n(density);
+      const Vec3f sigma_n = majorant - sigma_a - sigma_s;
       const Vec3f P_s = sigma_s / (sigma_s + sigma_n);
       const Vec3f P_n = sigma_n / (sigma_s + sigma_n);
 
@@ -421,25 +425,19 @@ class HeterogeneousMedium : public Medium {
     }
   }
 
-  Vec3f ratioTrackingSingleWavelengthTransmittance(const Vec3f& p1,
-                                                   const Vec3f& p2,
-                                                   const Vec3f& throughput,
-                                                   Sampler& sampler) const {
+  Vec3f ratioTrackingTransmittance(const Vec3f& p1, const Vec3f& p2,
+                                   const Vec3f& throughput,
+                                   Sampler& sampler) const {
     const float distToEnd = length(p1 - p2);
-
-    // sample wavelength
-    Vec3f pmf_wavelength;
-    const uint32_t channel =
-        sampleWavelength(Vec3f(1), Vec3f(1), sampler, pmf_wavelength);
 
     // loop until collision occurs or exit medium
     float t = 0;
     Ray ray(p1, normalize(p2 - p1));
-    float transmittance = 1.0f;
+    Vec3f transmittance(1);
     while (true) {
       // sample collision-free distance
       const float s = -std::log(std::max(1.0f - sampler.getNext1D(), 0.0f)) *
-                      invMajorant[channel];
+                      invMajorantMax;
       t += s;
 
       // no collision
@@ -449,19 +447,17 @@ class HeterogeneousMedium : public Medium {
 
       // ratio tracking
       const float density = getDensity(ray(t));
-      const Vec3f sigma_n = getSigma_n(density);
-      transmittance *= (sigma_n * invMajorant)[channel];
+      const Vec3f sigma_n =
+          Vec3f(majorantMax) - getSigma_a(density) - getSigma_s(density);
+      transmittance *= (sigma_n * invMajorantMax);
     }
 
-    Vec3f ret;
-    ret[channel] = transmittance / pmf_wavelength[channel];
-    return ret;
+    return transmittance;
   }
 
   Vec3f transmittance(const Vec3f& p1, const Vec3f& p2, const Vec3f& throughput,
                       Sampler& sampler) const override {
-    return ratioTrackingSingleWavelengthTransmittance(p1, p2, throughput,
-                                                      sampler);
+    return ratioTrackingTransmittance(p1, p2, throughput, sampler);
   }
 };
 
