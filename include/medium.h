@@ -98,7 +98,6 @@ class Medium {
                             Vec3f& throughput) const = 0;
 
   virtual Vec3f transmittance(const Vec3f& p1, const Vec3f& p2,
-                              const Vec3f& throughput,
                               Sampler& sampler) const = 0;
 
   Vec3f evalPhaseFunction(const Vec3f& wo, const Vec3f& wi) const {
@@ -157,7 +156,7 @@ class HomogeneousMedium : public Medium {
     return true;
   }
 
-  Vec3f transmittance(const Vec3f& p1, const Vec3f& p2, const Vec3f& throughput,
+  Vec3f transmittance(const Vec3f& p1, const Vec3f& p2,
                       Sampler& sampler) const override {
     const float t = length(p1 - p2);
     return analyticTransmittance(t, sigma_t);
@@ -203,7 +202,7 @@ class HomogeneousMediumAchromatic : public Medium {
     return true;
   }
 
-  Vec3f transmittance(const Vec3f& p1, const Vec3f& p2, const Vec3f& throughput,
+  Vec3f transmittance(const Vec3f& p1, const Vec3f& p2,
                       Sampler& sampler) const override {
     const float t = length(p1 - p2);
     return analyticTransmittance(t, Vec3f(sigma_t));
@@ -259,7 +258,7 @@ class HomogeneousMediumNoMIS : public Medium {
     return true;
   }
 
-  Vec3f transmittance(const Vec3f& p1, const Vec3f& p2, const Vec3f& throughput,
+  Vec3f transmittance(const Vec3f& p1, const Vec3f& p2,
                       Sampler& sampler) const override {
     const float t = length(p1 - p2);
     return analyticTransmittance(t, sigma_t);
@@ -389,44 +388,48 @@ class HeterogeneousMedium : public Medium {
   }
 
   Vec3f deltaTrackingTransmittance(const Vec3f& p1, const Vec3f& p2,
-                                   const Vec3f& throughput,
                                    Sampler& sampler) const {
     const float distToEnd = length(p1 - p2);
 
     // sample wavelength
     Vec3f pmf_wavelength;
     const uint32_t channel =
-        sampleWavelength(throughput, Vec3f(1), sampler, pmf_wavelength);
+        sampleWavelength(Vec3f(1), Vec3f(1), sampler, pmf_wavelength);
 
     // loop until collision occurs or exit medium
     float t = 0;
     Ray ray(p1, normalize(p2 - p1));
+    Vec3f transmittance(1);
     while (true) {
       // sample collision-free distance
       const float s = -std::log(std::max(1.0f - sampler.getNext1D(), 0.0f)) *
-                      invMajorant[channel];
+                      invMajorantMax;
       t += s;
 
       // no collision
       if (t > distToEnd) {
-        return Vec3f(1);
+        return transmittance;
       }
 
       // compute russian roulette probability
       const float density = getDensity(ray(t));
       const Vec3f sigma_a = getSigma_a(density);
       const Vec3f sigma_s = getSigma_s(density);
-      const Vec3f P_c = (sigma_s + sigma_a) / majorant;
+      const Vec3f sigma_n = Vec3f(majorantMax) - sigma_a - sigma_s;
+      const Vec3f P_n = sigma_n * invMajorantMax;
 
       // collision
-      if (sampler.getNext1D() < P_c[channel]) {
+      if (sampler.getNext1D() > P_n[channel]) {
         return Vec3f(0);
       }
+
+      transmittance *= (sigma_n / sigma_n[channel]);
     }
+
+    return transmittance;
   }
 
   Vec3f ratioTrackingTransmittance(const Vec3f& p1, const Vec3f& p2,
-                                   const Vec3f& throughput,
                                    Sampler& sampler) const {
     const float distToEnd = length(p1 - p2);
 
@@ -455,9 +458,9 @@ class HeterogeneousMedium : public Medium {
     return transmittance;
   }
 
-  Vec3f transmittance(const Vec3f& p1, const Vec3f& p2, const Vec3f& throughput,
+  Vec3f transmittance(const Vec3f& p1, const Vec3f& p2,
                       Sampler& sampler) const override {
-    return ratioTrackingTransmittance(p1, p2, throughput, sampler);
+    return deltaTrackingTransmittance(p1, p2, sampler);
   }
 };
 
